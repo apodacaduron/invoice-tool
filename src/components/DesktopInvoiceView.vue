@@ -4,7 +4,7 @@ import InvoicePreview from './InvoicePreview.vue';
 </script>
 
 <template>
-    <div class="flex">
+    <div class="flex h-full">
         <InvoiceForm />
         <InvoicePreview />
     </div>

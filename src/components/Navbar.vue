@@ -7,8 +7,13 @@ const drawerVisible = ref(false)
 </script>
 
 <template>
-    <nav class="flex justify-between border-b px-4 py-2 h-[60px]">
+    <nav class="flex justify-between items-center border-b px-4 py-2 h-[60px]">
         <Button @click="drawerVisible = true" icon="pi pi-bars" text />
+
+        <div class="font-semibold">
+            🧾 Invoice Tool
+        </div>
+
         <Button size="small" as="a" label="🍺 Donate" href="https://buymeacoffee.com/DanielApodaca" target="_blank" rel="noopener" />
     </nav>
 

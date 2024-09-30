@@ -4,8 +4,8 @@ import MobileInvoiceView from '@/components/MobileInvoiceView.vue'
 </script>
 
 <template>
-  <div>
-    <div class="hidden lg:block">
+  <div class="h-full">
+    <div class="hidden lg:block h-full h-full">
       <DesktopInvoiceView />
     </div>
     <div class="block lg:hidden">
