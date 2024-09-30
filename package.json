@@ -12,6 +12,7 @@
   "dependencies": {
     "@primevue/themes": "^4.0.7",
     "@tauri-apps/api": "^1",
+    "primeicons": "^7.0.0",
     "primevue": "^4.0.7",
     "tailwindcss-primeui": "^0.3.4",
     "vue": "^3.3.4",
