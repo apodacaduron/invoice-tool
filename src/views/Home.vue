@@ -2,7 +2,7 @@
 </script>
 
 <template>
-  <router-view />
+  Invoice tool
 </template>
 
 <style scoped>
