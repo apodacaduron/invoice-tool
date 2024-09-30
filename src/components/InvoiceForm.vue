@@ -4,7 +4,7 @@ import Textarea from 'primevue/textarea';
 </script>
 
 <template>
-  <div class="w-full max-w-md px-6 overflow-y-auto py-4">
+  <div class="w-full min-w-56 max-w-md px-2 lg:px-6 overflow-y-auto py-4">
     <h1 class="text-2xl font-semibold mb-4">
         Invoice details
     </h1>
