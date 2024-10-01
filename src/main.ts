@@ -5,8 +5,11 @@ import './index.css'
 import router from "./config/router";
 import Theme from '@/config/theme'
 import 'primeicons/primeicons.css'
+import { createPinia } from "pinia";
 
+const pinia = createPinia()
 const app = createApp(App);
+
 app.use(PrimeVue, {
     theme: {
         preset: Theme,
@@ -15,8 +18,8 @@ app.use(PrimeVue, {
         }
     }
  });
-
 app.use(router)
+app.use(pinia)
 
 app.mount('#app');
 

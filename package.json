@@ -12,15 +12,18 @@
   "dependencies": {
     "@primevue/themes": "^4.0.7",
     "@tauri-apps/api": "^1",
+    "pinia": "^2.2.4",
     "primeicons": "^7.0.0",
     "primevue": "^4.0.7",
     "tailwindcss-primeui": "^0.3.4",
+    "uuid": "^10.0.0",
     "vue": "^3.3.4",
     "vue-router": "^4.4.5"
   },
   "devDependencies": {
     "@tauri-apps/cli": "^1",
     "@types/node": "^22.7.4",
+    "@types/uuid": "^10.0.0",
     "@vitejs/plugin-vue": "^5.0.5",
     "autoprefixer": "^10.4.20",
     "postcss": "^8.4.47",
