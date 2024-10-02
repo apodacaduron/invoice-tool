@@ -3,49 +3,72 @@ import { useInvoiceStore } from "@/stores/invoice";
 import Button from "primevue/button";
 import DataTable from "primevue/datatable";
 import Column from "primevue/column";
+import { ref } from "vue";
+import html2pdf from "html2pdf.js";
 
 type Props = {
-  showBackButton: boolean
-}
+  showBackButton: boolean;
+};
 
-defineProps<Props>()
-defineEmits(['backToForm'])
+defineProps<Props>();
+defineEmits(["backToForm"]);
+
+const pageRef = ref<HTMLElement | null>(null);
 
 const invoiceStore = useInvoiceStore();
 
-function formatNumberToCurrency(value: any, locale: string = 'en-US', currency: string = 'USD'): string {
-    // Convert the value to a number and default to 0 if it's invalid
-    const numericValue = isNaN(Number(value)) ? 0 : Number(value);
+function formatNumberToCurrency(
+  value: any,
+  locale: string = "en-US",
+  currency: string = "USD"
+): string {
+  // Convert the value to a number and default to 0 if it's invalid
+  const numericValue = isNaN(Number(value)) ? 0 : Number(value);
 
-    return new Intl.NumberFormat(locale, {
-        style: 'currency',
-        currency: currency,
-    }).format(numericValue);
+  return new Intl.NumberFormat(locale, {
+    style: "currency",
+    currency: currency,
+  }).format(numericValue);
+}
+
+async function saveAsPdf() {
+  if (!pageRef.value) return;
+  const options = {
+    margin: [0.3, 0.5, 1, 0.5], 
+    image: { type: "jpeg", quality: 0.98 },
+    html2canvas: { scale: 2 },
+    jsPDF: { unit: "in", format: "letter", orientation: "portrait" },
+  };
+
+  html2pdf().set(options).from(pageRef.value).save();
 }
 </script>
 
 <template>
   <div class="invoice">
     <div class="invoice__toolbar">
-        <div class="flex items-center gap-2">
-            <Button v-if="showBackButton" size="small" icon="pi pi-arrow-left" @click="$emit('backToForm')" />
-            <h2 class="invoice__title">Preview</h2>
-        </div>
+      <div class="flex items-center gap-2">
+        <Button
+          v-if="showBackButton"
+          size="small"
+          icon="pi pi-arrow-left"
+          @click="$emit('backToForm')"
+        />
+        <h2 class="invoice__title">Preview</h2>
+      </div>
       <div>
-        <Button size="small" label="Download as PDF" />
+        <Button @click="saveAsPdf" size="small" label="Download as PDF" />
       </div>
     </div>
     <div class="page">
-      <div class="grid grid-cols-2 gap-4 p-8">
+      <div ref="pageRef" class="grid grid-cols-2 gap-4">
         <div class="h-fit col-span-2 sm:col-span-1 whitespace-pre-wrap"></div>
         <div class="h-fit col-span-2 sm:col-span-1">
           <div class="text-4xl text-right">INVOICE</div>
           <div class="flex justify-between items-center">
             <div class="text-gray-500 text-sm">ID</div>
             <div>
-              {{
-                invoiceStore.activeInvoice?.id
-              }}
+              {{ invoiceStore.activeInvoice?.id }}
             </div>
           </div>
           <div class="flex justify-between items-center">
@@ -75,14 +98,22 @@ function formatNumberToCurrency(value: any, locale: string = 'en-US', currency: 
             {{ invoiceStore.activeInvoice?.buyerInfo }}
           </div>
         </div>
-        <div class="h-fit col-span-2 text-sm">
+        <div class="h-fit col-span-2 text-sm whitespace-pre-wrap">
           <DataTable :value="invoiceStore.activeInvoice?.items">
-            <Column field="description" header="Description" class="!w-full"></Column>
+            <Column
+              field="description"
+              header="Description"
+              class="!w-full"
+            ></Column>
             <Column field="quantity" header="Quantity"></Column>
             <Column field="rate" header="Rate"></Column>
             <Column key="amount" field="amount" header="Amount">
               <template #body="slotProps">
-                {{ formatNumberToCurrency(slotProps.data.quantity * slotProps.data.rate) }}
+                {{
+                  formatNumberToCurrency(
+                    slotProps.data.quantity * slotProps.data.rate
+                  )
+                }}
               </template>
             </Column>
           </DataTable>
@@ -91,7 +122,9 @@ function formatNumberToCurrency(value: any, locale: string = 'en-US', currency: 
         <div class="h-fit col-span-2 sm:col-span-1">
           <div class="flex justify-between items-center text-right p-4">
             <div class="text-gray-500 text-sm">Total</div>
-            <div>{{ formatNumberToCurrency(invoiceStore.activeInvoiceTotal) }}</div>
+            <div>
+              {{ formatNumberToCurrency(invoiceStore.activeInvoiceTotal) }}
+            </div>
           </div>
         </div>
       </div>
@@ -110,7 +143,7 @@ function formatNumberToCurrency(value: any, locale: string = 'en-US', currency: 
     @apply text-2xl font-semibold;
   }
   .page {
-    @apply shadow-lg border w-full max-w-[8.5in] min-h-[11in] bg-white;
+    @apply shadow-lg border w-full max-w-[8.5in] min-h-[11in] bg-white p-10;
   }
 }
 </style>
