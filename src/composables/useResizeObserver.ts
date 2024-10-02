@@ -1,23 +1,33 @@
-import { ref, onMounted, onBeforeUnmount, Ref } from 'vue';
+import { ref, onMounted, onUnmounted, Ref } from 'vue';
 
-export function useResizeObserver(targetElementRef: Ref<HTMLElement | null>, callback: (entry: ResizeObserverEntry) => void) {
-  const observer = ref<ResizeObserver | null>(null);
+interface ElementSize {
+  width: number;
+  height: number;
+}
+
+export function useResizeObserver(elementRef: Ref<HTMLElement | null>) {
+  const elementSize = ref<ElementSize>({ width: 0, height: 0 });
+
+  let observer: ResizeObserver | null = null;
+
+  const updateSize = (entries: ResizeObserverEntry[]) => {
+    if (!entries.length) return;
+    const { width, height } = entries[0].contentRect;
+    elementSize.value = { width, height };
+  };
 
   onMounted(() => {
-    if (targetElementRef.value) {
-      observer.value = new ResizeObserver((entries) => {
-        if (entries.length) {
-          callback(entries[0]);
-        }
-      });
-      observer.value.observe(targetElementRef.value);
+    if (elementRef.value) {
+      observer = new ResizeObserver(updateSize);
+      observer.observe(elementRef.value);
     }
   });
 
-  onBeforeUnmount(() => {
-    if (observer.value && targetElementRef.value) {
-      observer.value.unobserve(targetElementRef.value);
-      observer.value.disconnect();
+  onUnmounted(() => {
+    if (observer && elementRef.value) {
+      observer.unobserve(elementRef.value);
     }
   });
+
+  return { elementSize };
 }

@@ -4,13 +4,13 @@ import Textarea from "primevue/textarea";
 import Button from "primevue/button";
 import DatePicker from "primevue/datepicker";
 import { ref, watch } from "vue";
-import { v4 as uuidv4 } from "uuid";
+import { nanoid } from 'nanoid';
 import { useInvoiceStore } from "@/stores/invoice";
 
 const invoiceForm = ref({
-  invoiceNumber: 1,
-  invoiceDate: null,
-  dueDate: null,
+  id: nanoid(),
+  invoiceDate: new Date(),
+  dueDate: new Date(),
   sellerInfo: null,
   buyerInfo: null,
   items: [buildInvoiceItem()],
@@ -24,31 +24,25 @@ function addItem() {
 }
 
 function buildInvoiceItem() {
-  return { id: uuidv4(), description: "", quantity: null, rate: null };
+  return { id: nanoid(), description: "", quantity: null, rate: null };
 }
 
 watch(
   invoiceForm,
   (nextInvoiceForm) => invoiceStore.setActiveInvoice(nextInvoiceForm),
-  { deep: true }
+  { deep: true, immediate: true }
 );
 </script>
 
 <template>
-  <div class="w-full min-w-56 max-w-md px-2 lg:px-6 py-4">
-    <h2 class="text-2xl font-semibold mb-4">Invoice details</h2>
+  <div class="w-full min-w-56 max-w-md px-4 lg:px-6 py-4">
+    <div class="flex justify-between items-center">
+      <h2 class="text-2xl font-semibold mb-4">Details</h2>
+      <slot name="action" />
+    </div>
     <div class="grid grid-cols-2 gap-4">
-      <div class="flex flex-col gap-2 col-span-2">
-        <label class="text-sm" for="invoiceNumber">Invoice Number</label>
-        <InputText
-          id="invoiceNumber"
-          v-model="invoiceForm.invoiceNumber"
-          placeholder="Enter invoice number"
-        />
-      </div>
-
       <div class="flex flex-col gap-2 col-span-1">
-        <label class="text-sm" for="invoiceDate">Invoice Date</label>
+        <label class="text-sm" for="invoiceDate">Date</label>
         <DatePicker
           id="invoiceDate"
           type="date"
@@ -72,6 +66,7 @@ watch(
         <label class="text-sm" for="sellerInfo">Your Information</label>
         <Textarea
           id="sellerInfo"
+          :autoResize="true"
           v-model="invoiceForm.sellerInfo"
           class="border rounded p-2"
           placeholder="Enter your company details (Name, Address, Contact)"
@@ -83,6 +78,7 @@ watch(
         <label class="text-sm" for="buyerInfo">Client Information</label>
         <Textarea
           id="buyerInfo"
+          :autoResize="true"
           v-model="invoiceForm.buyerInfo"
           class="border rounded p-2"
           placeholder="Enter client details (Name, Address, Contact)"

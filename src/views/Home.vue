@@ -1,18 +1,27 @@
 <script setup lang="ts">
-import DesktopInvoiceView from '@/components/DesktopInvoiceView.vue'
-import MobileInvoiceView from '@/components/MobileInvoiceView.vue'
+import InvoiceForm from '@/components/InvoiceForm.vue';
+import InvoicePreview from '@/components/InvoicePreview.vue';
+import { useResizeObserver } from '@/composables/useResizeObserver';
+import Button from 'primevue/button';
+import { ref } from 'vue';
+
+const invoiceContainerRef = ref<HTMLDivElement | null>(null)
+const isPreviewVisible = ref(false)
+
+const { elementSize: invoiceContainerDimensions } = useResizeObserver(invoiceContainerRef)
 </script>
 
 <template>
   <div class="max-w-[1295px] mx-auto">
-    <div class="hidden lg:block">
-      <DesktopInvoiceView />
-    </div>
-    <div class="block lg:hidden">
-      <MobileInvoiceView />
+    <div ref="invoiceContainerRef" class="flex">
+      <InvoiceForm v-if="!isPreviewVisible" :class="{ ['mx-auto']: invoiceContainerDimensions.width < 1024 }">
+        <template #action>
+          <Button label="Preview" @click="isPreviewVisible = !isPreviewVisible" />
+        </template>
+      </InvoiceForm>
+      <InvoicePreview v-if="invoiceContainerDimensions.width >= 1024 || isPreviewVisible" />
     </div>
   </div>
 </template>
 
-<style scoped>
-</style>
+<style scoped></style>
