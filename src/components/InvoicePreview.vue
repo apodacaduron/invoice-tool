@@ -143,7 +143,8 @@ async function saveAsPdf() {
     @apply text-2xl font-semibold;
   }
   .page {
-    @apply shadow-lg border w-full max-w-[8.5in] min-h-[11in] bg-white p-10;
+    @apply shadow-lg border w-full max-w-[8.5in] min-h-[11in] bg-white;
+    @apply p-4 lg:p-10;
   }
 }
 </style>
