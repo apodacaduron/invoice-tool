@@ -7,6 +7,13 @@ import { ref, watch } from "vue";
 import { nanoid } from 'nanoid';
 import { useInvoiceStore } from "@/stores/invoice";
 
+type Props = {
+  showPreviewButton: boolean
+}
+
+defineProps<Props>()
+defineEmits(['preview'])
+
 const invoiceForm = ref({
   id: nanoid(),
   invoiceDate: new Date(),
@@ -38,7 +45,7 @@ watch(
   <div class="w-full min-w-56 max-w-md px-4 lg:px-6 py-4">
     <div class="flex justify-between items-center">
       <h2 class="text-2xl font-semibold mb-4">Details</h2>
-      <slot name="action" />
+      <Button v-if="showPreviewButton" label="Preview" @click="$emit('preview')" />
     </div>
     <div class="grid grid-cols-2 gap-4">
       <div class="flex flex-col gap-2 col-span-1">
