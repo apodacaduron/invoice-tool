@@ -14,7 +14,7 @@ const drawerVisible = ref(false)
             🧾 Invoice Tool
         </div>
 
-        <Button size="small" as="a" label="🍺 Donate" href="https://buymeacoffee.com/DanielApodaca" target="_blank" rel="noopener" />
+        <Button size="small" as="a" label="Donate" href="https://buymeacoffee.com/DanielApodaca" target="_blank" rel="noopener" />
     </nav>
 
     <Drawer v-model:visible="drawerVisible" header="Drawer">
