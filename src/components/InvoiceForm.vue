@@ -141,7 +141,7 @@ watch(
       </template>
 
       <div class="flex flex-col gap-2 col-span-2 mt-2">
-        <Button @click="addItem" label="Add item" />
+        <Button @click="addItem" label="Add item" severity="secondary" />
       </div>
 
       <!-- Tax and Total -->
