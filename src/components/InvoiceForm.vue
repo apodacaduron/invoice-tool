@@ -50,7 +50,7 @@ const persistActiveInvoiceInLocalStorage = useDebounce(
     }
     localStorage.setItem("active-invoice", JSON.stringify(formattedActiveInvoice));
   },
-  1_000
+  500
 );
 
 function getActiveInvoiceFromLocalStorage() {
@@ -108,7 +108,7 @@ onMounted(() => {
     invoiceStore.setActiveInvoice(invoiceForm.value)
   }
 
-  watchers.invoiceWatcher()
+  watchers.invoiceWatcher.resume
 });
 
 const watchers = {
