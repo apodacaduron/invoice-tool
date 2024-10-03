@@ -16,6 +16,12 @@ export type Invoice = {
   }[];
 };
 
+export function isInvoice(maybeInvoice: unknown): maybeInvoice is Invoice {
+  const invoice = maybeInvoice as Invoice
+
+  return invoice !== null && typeof invoice === 'object' && 'id' in invoice && 'invoiceDate' in invoice && 'sellerInfo' in invoice && 'buyerInfo' in invoice
+}
+
 export const useInvoiceStore = defineStore("invoice", () => {
   const activeInvoice = ref<Invoice>();
 
