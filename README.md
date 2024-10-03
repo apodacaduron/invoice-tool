@@ -3,6 +3,10 @@
 
 **Invoice Tool** is a lightweight, client-side invoice generator designed to help you create, preview, and download invoices as PDFs. It’s a simple tool for freelancers, small businesses, or anyone who needs to generate simple invoices quickly.
 
+## 🌐 DEMO
+
+The app is live at [invoicetool.netlify.app](https://invoicetool.netlify.app/).
+
 ## 🚀 Features
 - **Client-Side Only**: This app runs entirely in the browser. We do **not store** any data on a server.
 - **PDF Export**: Generate and download invoices in PDF format.
@@ -38,10 +42,6 @@ npm run dev
 2. **Preview the invoice**: See a live preview of the invoice as you type.
 3. **Download the PDF**: Click the "Download" button to save your invoice locally.
 
-## 🌐 Deployment
-
-The app is live at [invoicetool.netlify.app](https://invoicetool.netlify.app/).
-
 ## 🏗️ Contributions
 
 Feel free to fork this project, submit pull requests, or open issues for any bugs or features you'd like to see!
@@ -52,4 +52,3 @@ If you have any questions or feedback, feel free to [open an issue](https://gith
 
 ## Repository Link
 [https://github.com/apodacaduron/invoice-tool](https://github.com/apodacaduron/invoice-tool)
-
