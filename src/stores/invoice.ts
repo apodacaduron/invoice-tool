@@ -1,8 +1,9 @@
 import { defineStore } from "pinia";
 import { computed, ref } from "vue";
 
-type Invoice = {
+export type Invoice = {
   id: string;
+  logo?: FileReader['result'];
   invoiceDate: Date | null;
   dueDate: Date | null;
   sellerInfo: string | null;

@@ -12,16 +12,29 @@ const drawerVisible = ref(false);
 
     <div class="font-semibold">🧾 Invoice Tool</div>
 
-    <Button
-      text
-      size="small"
-      as="a"
-      label="Donate"
-      href="https://buymeacoffee.com/DanielApodaca"
-      target="_blank"
-      rel="noopener"
-    />
+    <div class="flex gap-2">
+        <Button
+          text
+          size="small"
+          as="a"
+          label="❤️ Donate"
+          href="https://buymeacoffee.com/DanielApodaca"
+          target="_blank"
+          rel="noopener"
+        />
+        <Button
+          text
+          size="small"
+          as="a"
+          icon="pi pi-github"
+          href="https://github.com/apodacaduron/invoice-tool"
+          target="_blank"
+          rel="noopener"
+        />
+    </div>
   </nav>
 
-  <Drawer v-model:visible="drawerVisible" header="Coming soon."> </Drawer>
+  <Drawer v-model:visible="drawerVisible" header="Menu">
+    Coming soon.
+  </Drawer>
 </template>

@@ -3,9 +3,11 @@ import InputText from "primevue/inputtext";
 import Textarea from "primevue/textarea";
 import Button from "primevue/button";
 import DatePicker from "primevue/datepicker";
+import FileUpload from "primevue/fileupload";
 import { ref, watch } from "vue";
 import { nanoid } from 'nanoid';
-import { useInvoiceStore } from "@/stores/invoice";
+import { Invoice, useInvoiceStore } from "@/stores/invoice";
+import { FileUploadSelectEvent } from "primevue/fileupload";
 
 type Props = {
   showPreviewButton: boolean
@@ -14,8 +16,9 @@ type Props = {
 defineProps<Props>()
 defineEmits(['preview'])
 
-const invoiceForm = ref({
+const invoiceForm = ref<Invoice>({
   id: nanoid(),
+  logo: null,
   invoiceDate: new Date(),
   dueDate: new Date(),
   sellerInfo: null,
@@ -34,6 +37,18 @@ function buildInvoiceItem() {
   return { id: nanoid(), description: "", quantity: null, rate: null };
 }
 
+
+function onFileSelect(event: FileUploadSelectEvent) {
+    const file = event.files[0];
+    const reader = new FileReader();
+
+    reader.onload = async (e) => {
+      invoiceForm.value.logo = e.target?.result;
+    };
+
+    reader.readAsDataURL(file);
+}
+
 watch(
   invoiceForm,
   (nextInvoiceForm) => invoiceStore.setActiveInvoice(nextInvoiceForm),
@@ -45,9 +60,12 @@ watch(
   <div class="w-full min-w-56 max-w-md px-4 lg:px-6 py-4">
     <div class="flex justify-between items-center">
       <h2 class="text-2xl font-semibold mb-4">Details</h2>
-      <Button v-if="showPreviewButton" label="Preview" @click="$emit('preview')" />
+      <Button v-if="showPreviewButton" text label="Preview" @click="$emit('preview')" icon="pi pi-eye" />
     </div>
     <div class="grid grid-cols-2 gap-4">
+      <div class="flex flex-col gap-2 col-span-2">
+        <FileUpload mode="basic" @select="onFileSelect" customUpload auto severity="secondary" class="w-full p-button-outlined" :chooseLabel="invoiceForm.logo ? `Choose another logo` : `Choose logo`" />
+      </div>
       <div class="flex flex-col gap-2 col-span-1">
         <label class="text-sm" for="invoiceDate">Date</label>
         <DatePicker
@@ -141,29 +159,8 @@ watch(
       </template>
 
       <div class="flex flex-col gap-2 col-span-2 mt-2">
-        <Button @click="addItem" label="Add item" severity="secondary" />
+        <Button @click="addItem" label="Add item" severity="secondary" icon="pi pi-plus" />
       </div>
-
-      <!-- Tax and Total -->
-      <!-- <div class="flex flex-col gap-2 col-span-2">
-        <label class="text-sm" for="taxRate">Tax Rate</label>
-        <InputText
-          
-          id="taxRate"
-          type="number"
-          placeholder="Enter tax rate (%)"
-        />
-      </div> -->
-
-      <!-- Payment Method -->
-      <!-- <div class="flex flex-col gap-2 col-span-2">
-        <label class="text-sm" for="paymentMethod">Payment Method</label>
-        <InputText
-          
-          id="paymentMethod"
-          placeholder="Enter payment method"
-        />
-      </div> -->
     </div>
   </div>
 </template>

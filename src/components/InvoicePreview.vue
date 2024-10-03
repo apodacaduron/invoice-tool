@@ -51,18 +51,21 @@ async function saveAsPdf() {
         <Button
           v-if="showBackButton"
           size="small"
+          text
           icon="pi pi-arrow-left"
           @click="$emit('backToForm')"
         />
         <h2 class="invoice__title">Preview</h2>
       </div>
       <div>
-        <Button @click="saveAsPdf" size="small" label="Download as PDF" />
+        <Button @click="saveAsPdf" size="small" label="Download" icon="pi pi-download" />
       </div>
     </div>
     <div class="page">
       <div ref="pageRef" class="grid grid-cols-2 gap-4">
-        <div class="h-fit col-span-2 sm:col-span-1 whitespace-pre-wrap"></div>
+        <div class="h-fit col-span-2 sm:col-span-1">
+          <img v-if="invoiceStore.activeInvoice?.logo" :src="invoiceStore.activeInvoice?.logo.toString()" alt="Invoice logo" class="w-auto h-auto max-w-[300px] max-h-[100px]" />
+        </div>
         <div class="h-fit col-span-2 sm:col-span-1">
           <div class="text-4xl text-right">INVOICE</div>
           <div class="flex justify-between items-center">
