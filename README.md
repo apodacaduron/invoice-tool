@@ -1,18 +1,55 @@
-# Tauri + Vue + TypeScript
 
-This template should help get you started developing with Vue 3 and TypeScript in Vite. The template uses Vue 3 `<script setup>` SFCs, check out the [script setup docs](https://v3.vuejs.org/api/sfc-script-setup.html#sfc-script-setup) to learn more.
+# Invoice Tool
 
-## Recommended IDE Setup
+**Invoice Tool** is a lightweight, client-side invoice generator designed to help you create, preview, and download invoices as PDFs. It’s a simple tool for freelancers, small businesses, or anyone who needs to generate simple invoices quickly.
 
-- [VS Code](https://code.visualstudio.com/) + [Volar](https://marketplace.visualstudio.com/items?itemName=Vue.volar) + [Tauri](https://marketplace.visualstudio.com/items?itemName=tauri-apps.tauri-vscode) + [rust-analyzer](https://marketplace.visualstudio.com/items?itemName=rust-lang.rust-analyzer)
+## 🚀 Features
+- **Client-Side Only**: This app runs entirely in the browser. We do **not store** any data on a server.
+- **PDF Export**: Generate and download invoices in PDF format.
+- **Data Stored Locally**: All data is stored locally in your browser during your session, ensuring privacy and security.
+- **Open Source**: Fully open-source, allowing for customization and contributions.
 
-## Type Support For `.vue` Imports in TS
+## 🔐 Data Privacy
 
-Since TypeScript cannot handle type information for `.vue` imports, they are shimmed to be a generic Vue component type by default. In most cases this is fine if you don't really care about component prop types outside of templates. However, if you wish to get actual prop types in `.vue` imports (for example to get props validation when using manual `h(...)` calls), you can enable Volar's Take Over mode by following these steps:
+- **No Data is Sent to a Server**: Since this is a client-side application, none of your data is ever transmitted or stored on any external server. All invoice information remains securely in your browser and is cleared when you close the tab or refresh the page.
+  
+- **Local Storage Only**: If needed, the app may use browser local storage for persisting data between page refreshes. You have full control over this data, and it can be easily cleared by clearing your browser storage.
 
-1. Run `Extensions: Show Built-in Extensions` from VS Code's command palette, look for `TypeScript and JavaScript Language Features`, then right click and select `Disable (Workspace)`. By default, Take Over mode will enable itself if the default TypeScript extension is disabled.
-2. Reload the VS Code window by running `Developer: Reload Window` from the command palette.
+## 📅 Future Features
 
-You can learn more about Take Over mode [here](https://github.com/johnsoncodehk/volar/discussions/471).
-# invoice-tool
-# invoice-tool
+We are considering adding the following features in future releases:
+- **Cloud Storage**: Optional cloud storage for saving and accessing invoices across devices.
+- **User Authentication**: Support for logins to sync and manage invoices in the cloud.
+
+## 📥 Installation
+
+To run this project locally:
+
+```bash
+git clone https://github.com/apodacaduron/invoice-tool.git
+cd invoice-tool
+npm install
+npm run dev
+```
+
+## 🛠 Usage
+
+1. **Fill in your invoice details**: Enter your information, client details, and itemized services or products.
+2. **Preview the invoice**: See a live preview of the invoice as you type.
+3. **Download the PDF**: Click the "Download" button to save your invoice locally.
+
+## 🌐 Deployment
+
+The app is live at [invoicetool.netlify.app](https://invoicetool.netlify.app/).
+
+## 🏗️ Contributions
+
+Feel free to fork this project, submit pull requests, or open issues for any bugs or features you'd like to see!
+
+## 💬 Feedback & Support
+
+If you have any questions or feedback, feel free to [open an issue](https://github.com/apodacaduron/invoice-tool/issues).
+
+## Repository Link
+[https://github.com/apodacaduron/invoice-tool](https://github.com/apodacaduron/invoice-tool)
+
