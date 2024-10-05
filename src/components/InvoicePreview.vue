@@ -5,6 +5,8 @@ import DataTable from "primevue/datatable";
 import Column from "primevue/column";
 import { ref } from "vue";
 import html2pdf from "html2pdf.js";
+import { writeBinaryFile } from "@tauri-apps/api/fs";
+import { dialog } from "@tauri-apps/api";
 
 type Props = {
   showBackButton: boolean;
@@ -31,16 +33,42 @@ function formatNumberToCurrency(
   }).format(numericValue);
 }
 
+function isTauri() {
+  return Boolean(window.__TAURI__);
+}
+
 async function saveAsPdf() {
   if (!pageRef.value) return;
   const options = {
-    margin: [0.3, 0.5, 1, 0.5], 
+    margin: [0.3, 0.5, 1, 0.5],
     image: { type: "jpeg", quality: 0.98 },
     html2canvas: { scale: 2 },
     jsPDF: { unit: "in", format: "letter", orientation: "portrait" },
   };
 
-  html2pdf().set(options).from(pageRef.value).save();
+  const pdfInstance = html2pdf().set(options).from(pageRef.value);
+
+  if (isTauri()) {
+    const pdf = await pdfInstance.toPdf().get("pdf");
+    const blob = pdf.output("blob");
+
+    const arrayBuffer = await blob.arrayBuffer();
+    const byteArray = new Uint8Array(arrayBuffer);
+
+    const savePath = await dialog.save({
+      title: "Save PDF",
+      defaultPath: `invoice.pdf`, // Default filename
+      filters: [{ name: "PDF Documents", extensions: ["pdf"] }],
+    });
+
+    if (savePath) {
+      await writeBinaryFile(savePath, byteArray);
+    } else {
+      console.log("Save dialog was canceled.");
+    }
+  } else {
+    await pdfInstance.save();
+  }
 }
 </script>
 
@@ -58,13 +86,23 @@ async function saveAsPdf() {
         <h2 class="invoice__title">Preview</h2>
       </div>
       <div>
-        <Button @click="saveAsPdf" size="small" label="Download" icon="pi pi-download" />
+        <Button
+          @click="saveAsPdf"
+          size="small"
+          label="Download"
+          icon="pi pi-download"
+        />
       </div>
     </div>
     <div class="page">
       <div ref="pageRef" class="grid grid-cols-2 gap-4">
         <div class="h-fit col-span-2 sm:col-span-1">
-          <img v-if="invoiceStore.activeInvoice?.logo" :src="invoiceStore.activeInvoice?.logo.toString()" alt="Invoice logo" class="w-auto h-auto max-w-[300px] max-h-[100px]" />
+          <img
+            v-if="invoiceStore.activeInvoice?.logo"
+            :src="invoiceStore.activeInvoice?.logo.toString()"
+            alt="Invoice logo"
+            class="w-auto h-auto max-w-[300px] max-h-[100px]"
+          />
         </div>
         <div class="h-fit col-span-2 sm:col-span-1">
           <div class="text-4xl text-right">INVOICE</div>

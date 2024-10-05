@@ -16,6 +16,12 @@
       "shell": {
         "all": false,
         "open": true
+      },
+      "dialog": {
+        "all": true
+      },
+      "fs": {
+        "writeFile": true
       }
     },
     "windows": [
