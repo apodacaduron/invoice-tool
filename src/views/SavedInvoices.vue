@@ -102,9 +102,9 @@ function confirmDelete(invoice?: Invoice | null) {
             </Column>
         </DataTable>
 
-        <small>
+        <p class="my-8 px-4 text-sm text-gray-500">
             Disclaimer: All invoice history is stored locally on your device. Please note that this data may be lost if you uninstall the application or if there are system errors. We recommend regularly backing up your important invoices to prevent any potential loss.
-        </small>
+        </p>
 
         <Popover ref="actionsPopoverRef">
             <div class="flex flex-col gap-4 w-[120px]">
