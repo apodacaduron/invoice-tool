@@ -2,14 +2,8 @@
 import { ref } from "vue";
 import Drawer from "primevue/drawer";
 import Button from "primevue/button";
-import Menu from "primevue/menu";
 
 const drawerVisible = ref(false);
-
-const menuList = ref([
-  { label: "New", icon: "pi pi-plus" },
-  { label: "Search", icon: "pi pi-search" },
-]);
 </script>
 
 <template>
