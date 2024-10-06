@@ -1,25 +1,28 @@
+import { Invoice } from "@/config/database";
 import { defineStore } from "pinia";
 import { computed, ref } from "vue";
-
-export type Invoice = {
-  id: string;
-  logo?: FileReader['result'];
-  invoiceDate: Date | null;
-  dueDate: Date | null;
-  sellerInfo: string | null;
-  buyerInfo: string | null;
-  items: {
-    id: string;
-    description: string | null;
-    quantity: string | null;
-    rate: string | null;
-  }[];
-};
+import { nanoid } from "nanoid";
 
 export function isInvoice(maybeInvoice: unknown): maybeInvoice is Invoice {
   const invoice = maybeInvoice as Invoice
 
-  return invoice !== null && typeof invoice === 'object' && 'id' in invoice && 'invoiceDate' in invoice && 'sellerInfo' in invoice && 'buyerInfo' in invoice
+  return invoice !== null && typeof invoice === 'object' && 'id' in invoice && 'date' in invoice && 'sellerInfo' in invoice && 'buyerInfo' in invoice
+}
+
+export function getInvoiceInitialValues(): Invoice {
+  return {
+    id: nanoid(),
+    logo: null,
+    date: new Date(),
+    dueDate: new Date(),
+    sellerInfo: null,
+    buyerInfo: null,
+    items: [buildInvoiceItem()],
+  };
+}
+
+export function buildInvoiceItem() {
+  return { id: nanoid(), description: "", quantity: null, rate: null };
 }
 
 export const useInvoiceStore = defineStore("invoice", () => {
@@ -36,5 +39,17 @@ export const useInvoiceStore = defineStore("invoice", () => {
     activeInvoice.value = invoice;
   }
 
-  return { setActiveInvoice, activeInvoice, activeInvoiceTotal };
+  function resetActiveInvoice() {
+    const initialInvoiceValues = getInvoiceInitialValues()
+    activeInvoice.value = {
+      ...initialInvoiceValues,
+      id: activeInvoice.value?.id ?? initialInvoiceValues.id
+    }
+  }
+
+  function hardResetActiveInvoice() {
+    activeInvoice.value = getInvoiceInitialValues();
+  }
+
+  return { setActiveInvoice, activeInvoice, activeInvoiceTotal, resetActiveInvoice, hardResetActiveInvoice };
 });

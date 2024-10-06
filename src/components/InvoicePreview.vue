@@ -7,6 +7,10 @@ import { ref } from "vue";
 import html2pdf from "html2pdf.js";
 import { writeBinaryFile } from "@tauri-apps/api/fs";
 import { dialog } from "@tauri-apps/api";
+import { db, serializeInvoice } from "@/config/database";
+import { useQueryClient } from "@tanstack/vue-query";
+import { formatNumberToCurrency } from "@/utils/formatNumber";
+import router from "@/config/router";
 
 type Props = {
   showBackButton: boolean;
@@ -18,20 +22,7 @@ defineEmits(["backToForm"]);
 const pageRef = ref<HTMLElement | null>(null);
 
 const invoiceStore = useInvoiceStore();
-
-function formatNumberToCurrency(
-  value: any,
-  locale: string = "en-US",
-  currency: string = "USD"
-): string {
-  // Convert the value to a number and default to 0 if it's invalid
-  const numericValue = isNaN(Number(value)) ? 0 : Number(value);
-
-  return new Intl.NumberFormat(locale, {
-    style: "currency",
-    currency: currency,
-  }).format(numericValue);
-}
+const queryClient = useQueryClient()
 
 function isTauri() {
   return Boolean(window.__TAURI__);
@@ -63,12 +54,28 @@ async function saveAsPdf() {
 
     if (savePath) {
       await writeBinaryFile(savePath, byteArray);
+      storeInvoice()
     } else {
       console.log("Save dialog was canceled.");
     }
   } else {
     await pdfInstance.save();
+    storeInvoice()
   }
+}
+
+async function downloadInvoice() {
+  if (!invoiceStore.activeInvoice) return;
+  await saveAsPdf();
+}
+
+async function storeInvoice() {
+  if (!invoiceStore.activeInvoice) return;
+  const invoiceId = await db.invoices.put(
+    serializeInvoice({ ...invoiceStore.activeInvoice })
+  );
+  await queryClient.invalidateQueries({ queryKey: ['invoices'] })
+  router.push(`/invoice/${invoiceId}`)
 }
 </script>
 
@@ -87,9 +94,9 @@ async function saveAsPdf() {
       </div>
       <div>
         <Button
-          @click="saveAsPdf"
+          @click="downloadInvoice"
           size="small"
-          label="Download"
+          label="Save"
           icon="pi pi-download"
         />
       </div>
@@ -115,9 +122,7 @@ async function saveAsPdf() {
           <div class="flex justify-between items-center">
             <div class="text-gray-500 text-sm">Date</div>
             <div>
-              {{
-                invoiceStore.activeInvoice?.invoiceDate?.toLocaleDateString()
-              }}
+              {{ invoiceStore.activeInvoice?.date?.toLocaleDateString() }}
             </div>
           </div>
           <div class="flex justify-between items-center">
@@ -176,13 +181,16 @@ async function saveAsPdf() {
 <style lang="scss" scoped>
 .invoice {
   @apply w-full p-4 flex flex-col items-center;
+
   &__toolbar {
     @apply flex justify-between items-center mb-4;
     @apply max-w-[8.5in] w-full;
   }
+
   &__title {
     @apply text-2xl font-semibold;
   }
+
   .page {
     @apply shadow-lg border w-full max-w-[8.5in] min-h-[11in] bg-white;
     @apply p-4 lg:p-10;
