@@ -38,6 +38,8 @@ async function saveAsPdf() {
   };
 
   const pdfInstance = html2pdf().set(options).from(pageRef.value);
+  const date = new Date().toDateString().replace(' ', '-');
+  const filename = `invoice-${date}.pdf`
 
   if (isTauri()) {
     const pdf = await pdfInstance.toPdf().get("pdf");
@@ -48,7 +50,7 @@ async function saveAsPdf() {
 
     const savePath = await dialog.save({
       title: "Save PDF",
-      defaultPath: `invoice.pdf`, // Default filename
+      defaultPath: filename, // Default filename
       filters: [{ name: "PDF Documents", extensions: ["pdf"] }],
     });
 
@@ -59,7 +61,7 @@ async function saveAsPdf() {
       console.log("Save dialog was canceled.");
     }
   } else {
-    await pdfInstance.save();
+    await pdfInstance.save(filename);
     storeInvoice()
   }
 }
