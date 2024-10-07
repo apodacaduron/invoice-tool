@@ -80,7 +80,7 @@ function confirmDelete(invoice?: Invoice | null) {
     </div>
 
     <DataTable :value="invoicesQuery.data.value" tableStyle="min-width: 60rem">
-      <Column sortable field="id" header="ID"></Column>
+      <Column field="id" header="ID"></Column>
       <Column sortable field="date" header="Date">
         <template #body="slotProps">
           {{ slotProps.data.date.toLocaleDateString() }}
@@ -98,7 +98,7 @@ function confirmDelete(invoice?: Invoice | null) {
           {{ slotProps.data.items.length }}
         </template>
       </Column>
-      <Column sortable field="total" header="Total">
+      <Column field="total" header="Total">
         <template #body="slotProps">
           {{
             formatNumberToCurrency(
@@ -108,7 +108,7 @@ function confirmDelete(invoice?: Invoice | null) {
                 0
               )
             )
-          }}
+          }} {{ slotProps.data?.currency }}
         </template>
       </Column>
       <Column header="-">

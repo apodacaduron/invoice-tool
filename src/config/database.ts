@@ -8,6 +8,7 @@ export type Invoice = {
   dueDate: Date | null;
   sellerInfo: string | null;
   buyerInfo: string | null;
+  currency: string | null;
   items: {
     id: string;
     description: string | null;
@@ -23,6 +24,7 @@ export type InvoiceSerialized = {
   dueDate: string | null;
   sellerInfo: string | null;
   buyerInfo: string | null;
+  currency: string | null;
   items: {
     id: string;
     description: string | null;
@@ -60,5 +62,5 @@ export const db = new Dexie("invocie-tool-db") as Dexie & {
 // Schema declaration:
 db.version(1).stores({
   invoices:
-    "id, logo, date, dueDate, sellerInfo, buyerInfo, items", // primary key "id" (for the runtime!)
+    "id, logo, date, dueDate, sellerInfo, buyerInfo, items, currency", // primary key "id" (for the runtime!)
 });

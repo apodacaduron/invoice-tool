@@ -169,7 +169,7 @@ async function storeInvoice() {
           <div class="flex justify-between items-center text-right p-4">
             <div class="text-gray-500 text-sm">Total</div>
             <div>
-              {{ formatNumberToCurrency(invoiceStore.activeInvoiceTotal) }}
+              {{ formatNumberToCurrency(invoiceStore.activeInvoiceTotal) }} {{ invoiceStore.activeInvoice?.currency ?? 'USD' }}
             </div>
           </div>
         </div>

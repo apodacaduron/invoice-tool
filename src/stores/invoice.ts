@@ -17,6 +17,7 @@ export function getInvoiceInitialValues(): Invoice {
     dueDate: new Date(),
     sellerInfo: null,
     buyerInfo: null,
+    currency: 'USD',
     items: [buildInvoiceItem()],
   };
 }

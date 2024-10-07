@@ -11,6 +11,8 @@ import { db, deserializeInvoice, Invoice } from "@/config/database";
 import Dialog from "primevue/dialog";
 import { useQuery } from "@tanstack/vue-query";
 import { useRoute } from "vue-router";
+import { currencies } from "@/utils/currencies";
+import Select from "primevue/select";
 
 type Props = {
   showPreviewButton: boolean;
@@ -178,6 +180,18 @@ watch(
           class="border rounded p-2"
           placeholder="Enter client details (Name, Address, Contact)"
         ></Textarea>
+      </div>
+
+      <!-- Currency -->
+      <div class="flex flex-col gap-2 col-span-2">
+        <label class="text-sm" for="currency">Currency</label>
+        <Select
+          id="currency"
+          :options="currencies"
+          filter
+          v-model="invoiceForm.currency"
+          placeholder="Select a currency"
+        />
       </div>
 
       <!-- Item or Service Details -->
