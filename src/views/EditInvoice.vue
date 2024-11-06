@@ -2,8 +2,9 @@
 import InvoiceForm from "@/components/InvoiceForm.vue";
 import InvoicePreview from "@/components/InvoicePreview.vue";
 import { useResizeObserver } from "@/composables/useResizeObserver";
-import { db, deserializeInvoice } from "@/config/database";
-import { useInvoiceStore } from "@/stores/invoice";
+import { supabase } from "@/config/supabase";
+import { useAuthStore } from "@/stores";
+import { deserializeInvoice, useInvoiceStore } from "@/stores/invoice";
 import { useQuery } from "@tanstack/vue-query";
 import BlockUI from "primevue/blockui";
 import ProgressSpinner from "primevue/progressspinner";
@@ -15,18 +16,19 @@ const isPreviewVisible = ref(false);
 
 const route = useRoute()
 const router = useRouter()
+const authStore = useAuthStore()
 const invoiceStore = useInvoiceStore()
 const { elementSize: invoiceContainerDimensions } =
   useResizeObserver(invoiceContainerRef);
 const invoiceQuery = useQuery({
   queryKey: ['invoice', route.params.invoiceId?.toString()],
   async queryFn() {
-    const serializedInvoice = await db.invoices.get(route.params.invoiceId.toString())
-    if (!serializedInvoice) throw new Error('Invoice not found')
-    const deserializedInvoice = deserializeInvoice(serializedInvoice)
+    const serializedInvoice = await supabase.from('invoices').select().eq('id', route.params.invoiceId.toString()).single()
+    if (!serializedInvoice.data) throw new Error('Invoice not found')
+    const deserializedInvoice = deserializeInvoice(serializedInvoice.data)
     return deserializedInvoice
   },
-  enabled: Boolean(route.params.invoiceId?.toString())
+  enabled: toRef(() => Boolean(route.params.invoiceId?.toString()) && authStore.isLoggedIn)
 })
 
 const isMobile = toRef(() => invoiceContainerDimensions.value.width < 1024)
