@@ -1,5 +1,6 @@
 <script setup lang="ts">
-import { db, deserializeInvoice, Invoice } from "@/config/database";
+import { supabase } from "@/config/supabase";
+import { deserializeInvoice, Invoice, useAuthStore } from "@/stores";
 import { formatNumberToCurrency } from "@/utils/formatNumber";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/vue-query";
 import Button from "primevue/button";
@@ -8,7 +9,7 @@ import DataTable from "primevue/datatable";
 import Popover from "primevue/popover";
 import { useConfirm } from "primevue/useconfirm";
 import { useToast } from "primevue/usetoast";
-import { nextTick, ref } from "vue";
+import { nextTick, ref, toRef } from "vue";
 
 const actionsPopoverRef = ref<{
   show: (e: MouseEvent) => void;
@@ -16,22 +17,28 @@ const actionsPopoverRef = ref<{
 }>();
 const selectedInvoice = ref<Invoice | null>(null);
 
+const authStore = useAuthStore()
 const queryClient = useQueryClient();
 const confirm = useConfirm();
 const toast = useToast();
 const deleteInvoiceQuery = useMutation({
-  async mutationFn(invoiceId: string) {
-    await db.invoices.delete(invoiceId);
+  async mutationFn(invoiceId?: string) {
+    if (!invoiceId) throw new Error('Could not delete since invoice id was not provided')
+    await supabase.from('invoices').delete().eq('id', invoiceId)
     await queryClient.invalidateQueries({ queryKey: ["invoices"] });
   },
 });
 const invoicesQuery = useQuery({
   queryKey: ["invoices"],
   async queryFn() {
-    const serializedInvoices = await db.invoices.toArray();
-    const deserializedInvoices = serializedInvoices.map(deserializeInvoice);
+    const serializedInvoices = await supabase
+      .from('invoices')
+      .select()
+    const deserializedInvoices =
+      serializedInvoices.data?.map(deserializeInvoice);
     return deserializedInvoices;
   },
+  enabled: toRef(() => authStore.isLoggedIn)
 });
 
 function openActionsPopover(event: MouseEvent, invoice: Invoice) {
@@ -86,13 +93,13 @@ function confirmDelete(invoice?: Invoice | null) {
           {{ slotProps.data.date.toLocaleDateString() }}
         </template>
       </Column>
-      <Column sortable field="dueDate" header="Due date">
+      <Column sortable field="due_date" header="Due date">
         <template #body="slotProps">
           {{ slotProps.data.date.toLocaleDateString() }}
         </template>
       </Column>
-      <Column sortable field="sellerInfo" header="Seller info"></Column>
-      <Column sortable field="buyerInfo" header="Buyer info"></Column>
+      <Column sortable field="seller_info" header="Seller info"></Column>
+      <Column sortable field="buyer_info" header="Buyer info"></Column>
       <Column field="items" header="Items">
         <template #body="slotProps">
           {{ slotProps.data.items.length }}

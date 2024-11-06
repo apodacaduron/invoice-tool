@@ -1,64 +1,63 @@
 <script setup lang="ts">
-import InputText from "primevue/inputtext";
-import Textarea from "primevue/textarea";
-import Button from "primevue/button";
-import DatePicker from "primevue/datepicker";
-import FileUpload from "primevue/fileupload";
-import { ref, toRef, watch } from "vue";
-import { buildInvoiceItem, useInvoiceStore } from "@/stores/invoice";
-import { FileUploadSelectEvent } from "primevue/fileupload";
-import { db, deserializeInvoice, Invoice } from "@/config/database";
-import Dialog from "primevue/dialog";
-import { useQuery } from "@tanstack/vue-query";
-import { useRoute } from "vue-router";
-import { currencies } from "@/utils/currencies";
-import Select from "primevue/select";
+import InputText from 'primevue/inputtext';
+import Textarea from 'primevue/textarea';
+import Button from 'primevue/button';
+import DatePicker from 'primevue/datepicker';
+import { ref, toRef, watch } from 'vue';
+import {
+  buildInvoiceItem,
+  deserializeInvoice,
+  Invoice,
+  useInvoiceStore,
+} from '@/stores/invoice';
+import Dialog from 'primevue/dialog';
+import { useQuery } from '@tanstack/vue-query';
+import { useRoute } from 'vue-router';
+import { currencies } from '@/utils/currencies';
+import Select from 'primevue/select';
+import { supabase } from '@/config/supabase';
+import { useAuthStore } from '@/stores';
 
 type Props = {
   showPreviewButton: boolean;
 };
 
 defineProps<Props>();
-defineEmits(["preview"]);
+defineEmits(['preview']);
 
+const authStore = useAuthStore()
 const invoiceStore = useInvoiceStore();
-const invoiceForm = ref<Invoice | undefined>(invoiceStore.activeInvoice);
+const invoiceForm = ref<Invoice | null>(invoiceStore.activeInvoice);
 const isRecentValuesOpen = ref(false);
 const recentValuesField = ref<keyof Invoice | null>(null);
 
-const route = useRoute()
+const route = useRoute();
 const recentValuesQuery = useQuery({
-  queryKey: toRef(() => ["recent-values-invoices", recentValuesField.value]),
+  queryKey: toRef(() => ['recent-values-invoices', recentValuesField.value]),
   async queryFn() {
     const fieldKey = recentValuesField.value;
-    if (!fieldKey) throw new Error("Recent value field not provided");
-    const serializedInvoices = await db.invoices.toArray();
-    const deserializedInvoices = serializedInvoices.map(deserializeInvoice);
+    if (!fieldKey) throw new Error('Recent value field not provided');
+    const serializedInvoices = await supabase
+      .from('invoices')
+      .select()
+      .limit(10);
+    const deserializedInvoices =
+      serializedInvoices.data?.map(deserializeInvoice);
     const uniqueFieldValues = [
       ...new Set(
-        deserializedInvoices.map((invoice) => invoice[fieldKey]).filter(Boolean)
+        deserializedInvoices
+          ?.map((invoice) => invoice?.[fieldKey])
+          .filter(Boolean)
       ),
     ];
     return uniqueFieldValues;
   },
-  enabled: toRef(() => Boolean(recentValuesField.value)),
+  enabled: toRef(() => Boolean(recentValuesField.value) && authStore.isLoggedIn),
 });
 
 function addItem() {
   const nextInvoiceItem = buildInvoiceItem();
   invoiceForm.value?.items.push(nextInvoiceItem);
-}
-
-function onFileSelect(event: FileUploadSelectEvent) {
-  const file = event.files[0];
-  const reader = new FileReader();
-
-  reader.onload = async (e) => {
-    if (!invoiceForm.value) return;
-    invoiceForm.value.logo = e.target?.result;
-  };
-
-  reader.readAsDataURL(file);
 }
 
 function openRecentValuesDialog(field: keyof Invoice) {
@@ -105,19 +104,6 @@ watch(
       </div>
     </div>
     <div class="grid grid-cols-2 gap-4">
-      <div class="flex flex-col gap-2 col-span-2">
-        <FileUpload
-          mode="basic"
-          @select="onFileSelect"
-          customUpload
-          auto
-          severity="secondary"
-          class="w-full p-button-outlined"
-          :chooseLabel="
-            invoiceForm.logo ? `Choose another logo` : `Choose logo`
-          "
-        />
-      </div>
       <div class="flex flex-col gap-2 col-span-1">
         <label class="text-sm" for="date">Date</label>
         <DatePicker
@@ -129,11 +115,11 @@ watch(
       </div>
 
       <div class="flex flex-col gap-2 col-span-1">
-        <label class="text-sm" for="dueDate">Due date</label>
+        <label class="text-sm" for="due_date">Due date</label>
         <DatePicker
-          id="dueDate"
+          id="due_date"
           type="date"
-          v-model="invoiceForm.dueDate"
+          v-model="invoiceForm.due_date"
           placeholder="Select due date"
         />
       </div>
@@ -141,20 +127,21 @@ watch(
       <!-- Seller Information -->
       <div class="flex flex-col gap-2 col-span-2">
         <div class="flex justify-between items-end">
-          <label class="text-sm" for="sellerInfo">Your information</label>
+          <label class="text-sm" for="seller_info">Your information</label>
           <Button
-            @click="openRecentValuesDialog('sellerInfo')"
+            @click="openRecentValuesDialog('seller_info')"
             small
             text
             label="Recent values"
             icon="pi pi-history"
             class="!py-0"
+            v-if="authStore.isLoggedIn"
           />
         </div>
         <Textarea
-          id="sellerInfo"
+          id="seller_info"
           :autoResize="true"
-          v-model="invoiceForm.sellerInfo"
+          v-model="invoiceForm.seller_info"
           class="border rounded p-2"
           placeholder="Enter your company details (Name, Address, Contact)"
         ></Textarea>
@@ -163,20 +150,21 @@ watch(
       <!-- Buyer Information -->
       <div class="flex flex-col gap-2 col-span-2">
         <div class="flex justify-between items-end">
-          <label class="text-sm" for="buyerInfo">Client information</label>
+          <label class="text-sm" for="buyer_info">Client information</label>
           <Button
-            @click="openRecentValuesDialog('buyerInfo')"
+            @click="openRecentValuesDialog('buyer_info')"
             small
             text
             label="Recent values"
             icon="pi pi-history"
             class="!py-0"
+            v-if="authStore.isLoggedIn"
           />
         </div>
         <Textarea
-          id="buyerInfo"
+          id="buyer_info"
           :autoResize="true"
-          v-model="invoiceForm.buyerInfo"
+          v-model="invoiceForm.buyer_info"
           class="border rounded p-2"
           placeholder="Enter client details (Name, Address, Contact)"
         ></Textarea>
@@ -268,7 +256,7 @@ watch(
           class="w-full"
           @click="setRecentValue(recentValue)"
         >
-          {{ recentValue ?? "-" }}
+          {{ recentValue ?? '-' }}
         </Button>
       </div>
     </Dialog>

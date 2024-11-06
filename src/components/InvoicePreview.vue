@@ -1,31 +1,33 @@
 <script setup lang="ts">
-import { useInvoiceStore } from "@/stores/invoice";
-import Button from "primevue/button";
-import DataTable from "primevue/datatable";
-import Column from "primevue/column";
-import { ref } from "vue";
-import html2pdf from "html2pdf.js";
-import { writeBinaryFile } from "@tauri-apps/api/fs";
-import { dialog } from "@tauri-apps/api";
-import { db, serializeInvoice } from "@/config/database";
-import { useMutation, useQueryClient } from "@tanstack/vue-query";
-import { formatNumberToCurrency } from "@/utils/formatNumber";
-import router from "@/config/router";
+import { serializeInvoice, useInvoiceStore } from '@/stores/invoice';
+import Button from 'primevue/button';
+import DataTable from 'primevue/datatable';
+import Column from 'primevue/column';
+import { ref } from 'vue';
+import html2pdf from 'html2pdf.js';
+import { writeBinaryFile } from '@tauri-apps/api/fs';
+import { dialog } from '@tauri-apps/api';
+import { useMutation, useQueryClient } from '@tanstack/vue-query';
+import { formatNumberToCurrency } from '@/utils/formatNumber';
+import router from '@/config/router';
+import { useAuthStore } from '@/stores';
+import { supabase } from '@/config/supabase';
 
 type Props = {
   showBackButton: boolean;
 };
 
 defineProps<Props>();
-defineEmits(["backToForm"]);
+defineEmits(['backToForm']);
 
 const pageRef = ref<HTMLElement | null>(null);
 
+const authStore = useAuthStore();
 const invoiceStore = useInvoiceStore();
-const queryClient = useQueryClient()
+const queryClient = useQueryClient();
 const saveAsPdfMutation = useMutation({
-  mutationFn: saveAsPdf
-})
+  mutationFn: saveAsPdf,
+});
 
 function isTauri() {
   return Boolean(window.__TAURI__);
@@ -33,54 +35,61 @@ function isTauri() {
 
 async function saveAsPdf() {
   if (!pageRef.value) return;
+
   const options = {
     margin: [0.3, 0.5, 1, 0.5],
-    image: { type: "jpeg", quality: 0.98 },
+    image: { type: 'jpeg', quality: 0.98 },
     html2canvas: { scale: 2 },
-    jsPDF: { unit: "in", format: "letter", orientation: "portrait" },
+    jsPDF: { unit: 'in', format: 'letter', orientation: 'portrait' },
   };
 
   const pdfInstance = html2pdf().set(options).from(pageRef.value);
   const date = new Date().toDateString().replace(' ', '-');
-  const filename = `invoice-${date}.pdf`
+  const filename = `invoice-${date}.pdf`;
 
   if (isTauri()) {
-    const pdf = await pdfInstance.toPdf().get("pdf");
-    const blob = pdf.output("blob");
+    const pdf = await pdfInstance.toPdf().get('pdf');
+    const blob = pdf.output('blob');
 
     const arrayBuffer = await blob.arrayBuffer();
     const byteArray = new Uint8Array(arrayBuffer);
 
     const savePath = await dialog.save({
-      title: "Save PDF",
+      title: 'Save PDF',
       defaultPath: filename, // Default filename
-      filters: [{ name: "PDF Documents", extensions: ["pdf"] }],
+      filters: [{ name: 'PDF Documents', extensions: ['pdf'] }],
     });
 
     if (savePath) {
       await writeBinaryFile(savePath, byteArray);
-      storeInvoice()
+      storeInvoice();
     } else {
-      console.log("Save dialog was canceled.");
+      console.log('Save dialog was canceled.');
     }
   } else {
     await pdfInstance.save(filename);
-    storeInvoice()
+    storeInvoice();
   }
 }
 
 function downloadInvoice() {
   if (!invoiceStore.activeInvoice) return;
-  saveAsPdfMutation.mutate()
+  if (!authStore.isLoggedIn) return (authStore.isSignInDialogVisible = true);
+
+  saveAsPdfMutation.mutate();
 }
 
 async function storeInvoice() {
   if (!invoiceStore.activeInvoice) return;
-  const invoiceId = await db.invoices.put(
-    serializeInvoice({ ...invoiceStore.activeInvoice })
-  );
-  await queryClient.invalidateQueries({ queryKey: ['invoices'] })
-  router.push(`/invoice/${invoiceId}`)
+  if (!authStore.isLoggedIn) return;
+  const invoiceResponse = await supabase
+    .from('invoices')
+    .upsert(serializeInvoice({ ...invoiceStore.activeInvoice }))
+    .select()
+    .single();
+  const invoiceId = invoiceResponse.data?.id;
+  await queryClient.invalidateQueries({ queryKey: ['invoices'] });
+  router.push(`/invoice/${invoiceId}`);
 }
 </script>
 
@@ -110,44 +119,38 @@ async function storeInvoice() {
     <div class="page">
       <div ref="pageRef" class="grid grid-cols-2 gap-4">
         <div class="h-fit col-span-2 sm:col-span-1">
-          <img
-            v-if="invoiceStore.activeInvoice?.logo"
-            :src="invoiceStore.activeInvoice?.logo.toString()"
-            alt="Invoice logo"
-            class="w-auto h-auto max-w-[300px] max-h-[100px]"
-          />
+          <div class="text-4xl font-bold mb-3">INVOICE</div>
         </div>
         <div class="h-fit col-span-2 sm:col-span-1">
-          <div class="text-4xl font-bold text-right mb-3">INVOICE</div>
           <div class="flex justify-between items-center">
             <div class="text-gray-500 font-bold text-sm">ID</div>
-            <div>
+            <div class="text-xs">
               {{ invoiceStore.activeInvoice?.id }}
             </div>
           </div>
           <div class="flex justify-between items-center">
             <div class="text-gray-500 font-bold text-sm">Date</div>
-            <div>
-              {{ invoiceStore.activeInvoice?.date?.toLocaleDateString() }}
+            <div class="text-xs">
+              {{ invoiceStore.activeInvoice?.date?.toDateString() }}
             </div>
           </div>
           <div class="flex justify-between items-center">
             <div class="text-gray-500 font-bold text-sm">Invoice due</div>
-            <div>
-              {{ invoiceStore.activeInvoice?.dueDate?.toLocaleDateString() }}
+            <div class="text-xs">
+              {{ invoiceStore.activeInvoice?.due_date?.toDateString() }}
             </div>
           </div>
         </div>
         <div class="h-fit col-span-2 sm:col-span-1 whitespace-pre-wrap">
           <div class="text-gray-500 font-bold text-sm">From</div>
           <div class="text-sm">
-            {{ invoiceStore.activeInvoice?.sellerInfo }}
+            {{ invoiceStore.activeInvoice?.seller_info || '-' }}
           </div>
         </div>
         <div class="h-fit col-span-2 sm:col-span-1 whitespace-pre-wrap">
           <div class="text-gray-500 font-bold text-sm">Bill to</div>
           <div class="text-sm">
-            {{ invoiceStore.activeInvoice?.buyerInfo }}
+            {{ invoiceStore.activeInvoice?.buyer_info || '-' }}
           </div>
         </div>
         <div class="h-fit col-span-2 text-sm whitespace-pre-wrap">
@@ -171,11 +174,14 @@ async function storeInvoice() {
           </DataTable>
         </div>
         <div class="h-fit col-span-2 sm:col-span-1"></div>
-        <div class="h-fit col-span-2 sm:col-span-1 text-xl font-semibold mt-4 p-2 bg-gray-100">
+        <div
+          class="h-fit col-span-2 sm:col-span-1 text-xl font-semibold mt-4 p-2 bg-gray-100"
+        >
           <div class="flex justify-between items-center text-right p-4">
             <div class="text-gray-500 text-sm">Total</div>
             <div>
-              {{ formatNumberToCurrency(invoiceStore.activeInvoiceTotal) }} {{ invoiceStore.activeInvoice?.currency ?? 'USD' }}
+              {{ formatNumberToCurrency(invoiceStore.activeInvoiceTotal) }}
+              {{ invoiceStore.activeInvoice?.currency ?? 'USD' }}
             </div>
           </div>
         </div>
