@@ -28,6 +28,7 @@ watch(
       summary: 'Success',
       detail: 'You are now signed in',
       severity: 'success',
+      life: 3000,
     });
   }
 );
