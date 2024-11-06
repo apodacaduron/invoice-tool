@@ -17,7 +17,7 @@ const drawerVisible = ref(false);
         text
         size="small"
         as="a"
-        label="❤️ Donate"
+        label="❤️ Support me"
         href="https://buymeacoffee.com/DanielApodaca"
         target="_blank"
         rel="noopener"

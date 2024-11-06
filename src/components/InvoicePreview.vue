@@ -8,7 +8,7 @@ import html2pdf from "html2pdf.js";
 import { writeBinaryFile } from "@tauri-apps/api/fs";
 import { dialog } from "@tauri-apps/api";
 import { db, serializeInvoice } from "@/config/database";
-import { useQueryClient } from "@tanstack/vue-query";
+import { useMutation, useQueryClient } from "@tanstack/vue-query";
 import { formatNumberToCurrency } from "@/utils/formatNumber";
 import router from "@/config/router";
 
@@ -23,6 +23,9 @@ const pageRef = ref<HTMLElement | null>(null);
 
 const invoiceStore = useInvoiceStore();
 const queryClient = useQueryClient()
+const saveAsPdfMutation = useMutation({
+  mutationFn: saveAsPdf
+})
 
 function isTauri() {
   return Boolean(window.__TAURI__);
@@ -66,9 +69,9 @@ async function saveAsPdf() {
   }
 }
 
-async function downloadInvoice() {
+function downloadInvoice() {
   if (!invoiceStore.activeInvoice) return;
-  await saveAsPdf();
+  saveAsPdfMutation.mutate()
 }
 
 async function storeInvoice() {
@@ -100,6 +103,7 @@ async function storeInvoice() {
           size="small"
           label="Save"
           icon="pi pi-download"
+          :loading="saveAsPdfMutation.isPending.value"
         />
       </div>
     </div>
@@ -114,34 +118,34 @@ async function storeInvoice() {
           />
         </div>
         <div class="h-fit col-span-2 sm:col-span-1">
-          <div class="text-4xl text-right">INVOICE</div>
+          <div class="text-4xl font-bold text-right mb-3">INVOICE</div>
           <div class="flex justify-between items-center">
-            <div class="text-gray-500 text-sm">ID</div>
+            <div class="text-gray-500 font-bold text-sm">ID</div>
             <div>
               {{ invoiceStore.activeInvoice?.id }}
             </div>
           </div>
           <div class="flex justify-between items-center">
-            <div class="text-gray-500 text-sm">Date</div>
+            <div class="text-gray-500 font-bold text-sm">Date</div>
             <div>
               {{ invoiceStore.activeInvoice?.date?.toLocaleDateString() }}
             </div>
           </div>
           <div class="flex justify-between items-center">
-            <div class="text-gray-500 text-sm">Invoice due</div>
+            <div class="text-gray-500 font-bold text-sm">Invoice due</div>
             <div>
               {{ invoiceStore.activeInvoice?.dueDate?.toLocaleDateString() }}
             </div>
           </div>
         </div>
         <div class="h-fit col-span-2 sm:col-span-1 whitespace-pre-wrap">
-          <div class="text-gray-500 text-sm">From</div>
+          <div class="text-gray-500 font-bold text-sm">From</div>
           <div class="text-sm">
             {{ invoiceStore.activeInvoice?.sellerInfo }}
           </div>
         </div>
         <div class="h-fit col-span-2 sm:col-span-1 whitespace-pre-wrap">
-          <div class="text-gray-500 text-sm">Bill to</div>
+          <div class="text-gray-500 font-bold text-sm">Bill to</div>
           <div class="text-sm">
             {{ invoiceStore.activeInvoice?.buyerInfo }}
           </div>
@@ -167,7 +171,7 @@ async function storeInvoice() {
           </DataTable>
         </div>
         <div class="h-fit col-span-2 sm:col-span-1"></div>
-        <div class="h-fit col-span-2 sm:col-span-1">
+        <div class="h-fit col-span-2 sm:col-span-1 text-xl font-semibold mt-4 p-2 bg-gray-100">
           <div class="flex justify-between items-center text-right p-4">
             <div class="text-gray-500 text-sm">Total</div>
             <div>
