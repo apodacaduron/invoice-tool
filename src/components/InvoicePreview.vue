@@ -10,7 +10,6 @@ import { dialog } from '@tauri-apps/api';
 import { useMutation, useQueryClient } from '@tanstack/vue-query';
 import { formatNumberToCurrency } from '@/utils/formatNumber';
 import router from '@/config/router';
-import SignInDialog from './SignInDialog.vue';
 import { useAuthStore } from '@/stores';
 import { supabase } from '@/config/supabase';
 
@@ -36,6 +35,7 @@ function isTauri() {
 
 async function saveAsPdf() {
   if (!pageRef.value) return;
+
   const options = {
     margin: [0.3, 0.5, 1, 0.5],
     image: { type: 'jpeg', quality: 0.98 },
