@@ -124,33 +124,33 @@ async function storeInvoice() {
         <div class="h-fit col-span-2 sm:col-span-1">
           <div class="flex justify-between items-center">
             <div class="text-gray-500 font-bold text-sm">ID</div>
-            <div>
+            <div class="text-xs">
               {{ invoiceStore.activeInvoice?.id }}
             </div>
           </div>
           <div class="flex justify-between items-center">
             <div class="text-gray-500 font-bold text-sm">Date</div>
-            <div>
-              {{ invoiceStore.activeInvoice?.date?.toLocaleDateString() }}
+            <div class="text-xs">
+              {{ invoiceStore.activeInvoice?.date?.toDateString() }}
             </div>
           </div>
           <div class="flex justify-between items-center">
             <div class="text-gray-500 font-bold text-sm">Invoice due</div>
-            <div>
-              {{ invoiceStore.activeInvoice?.due_date?.toLocaleDateString() }}
+            <div class="text-xs">
+              {{ invoiceStore.activeInvoice?.due_date?.toDateString() }}
             </div>
           </div>
         </div>
         <div class="h-fit col-span-2 sm:col-span-1 whitespace-pre-wrap">
           <div class="text-gray-500 font-bold text-sm">From</div>
           <div class="text-sm">
-            {{ invoiceStore.activeInvoice?.seller_info }}
+            {{ invoiceStore.activeInvoice?.seller_info || '-' }}
           </div>
         </div>
         <div class="h-fit col-span-2 sm:col-span-1 whitespace-pre-wrap">
           <div class="text-gray-500 font-bold text-sm">Bill to</div>
           <div class="text-sm">
-            {{ invoiceStore.activeInvoice?.buyer_info }}
+            {{ invoiceStore.activeInvoice?.buyer_info || '-' }}
           </div>
         </div>
         <div class="h-fit col-span-2 text-sm whitespace-pre-wrap">
