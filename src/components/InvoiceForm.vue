@@ -105,19 +105,6 @@ watch(
       </div>
     </div>
     <div class="grid grid-cols-2 gap-4">
-      <div class="flex flex-col gap-2 col-span-2">
-        <FileUpload
-          mode="basic"
-          @select="onFileSelect"
-          customUpload
-          auto
-          severity="secondary"
-          class="w-full p-button-outlined"
-          :chooseLabel="
-            invoiceForm.logo ? `Choose another logo` : `Choose logo`
-          "
-        />
-      </div>
       <div class="flex flex-col gap-2 col-span-1">
         <label class="text-sm" for="date">Date</label>
         <DatePicker

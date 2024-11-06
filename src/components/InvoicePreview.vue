@@ -110,15 +110,9 @@ async function storeInvoice() {
     <div class="page">
       <div ref="pageRef" class="grid grid-cols-2 gap-4">
         <div class="h-fit col-span-2 sm:col-span-1">
-          <img
-            v-if="invoiceStore.activeInvoice?.logo"
-            :src="invoiceStore.activeInvoice?.logo.toString()"
-            alt="Invoice logo"
-            class="w-auto h-auto max-w-[300px] max-h-[100px]"
-          />
+          <div class="text-4xl font-bold mb-3">INVOICE</div>
         </div>
         <div class="h-fit col-span-2 sm:col-span-1">
-          <div class="text-4xl font-bold text-right mb-3">INVOICE</div>
           <div class="flex justify-between items-center">
             <div class="text-gray-500 font-bold text-sm">ID</div>
             <div>
