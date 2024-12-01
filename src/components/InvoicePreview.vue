@@ -44,7 +44,7 @@ async function saveAsPdf() {
   };
 
   const pdfInstance = html2pdf().set(options).from(pageRef.value);
-  const date = new Date().toDateString().replace(' ', '-');
+  const date = invoiceStore.activeInvoice?.date?.toDateString().replaceAll(' ', '-').toLowerCase();
   const filename = `invoice-${date}.pdf`;
 
   if (isTauri()) {
