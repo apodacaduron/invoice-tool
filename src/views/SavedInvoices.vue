@@ -33,7 +33,7 @@ const invoicesQuery = useQuery({
   async queryFn() {
     const serializedInvoices = await supabase
       .from('invoices')
-      .select()
+      .select().order('date', {ascending: false})
     const deserializedInvoices =
       serializedInvoices.data?.map(deserializeInvoice);
     return deserializedInvoices;
@@ -88,18 +88,18 @@ function confirmDelete(invoice?: Invoice | null) {
 
     <DataTable :value="invoicesQuery.data.value" tableStyle="min-width: 60rem">
       <Column field="id" header="ID"></Column>
-      <Column sortable field="date" header="Date">
+      <Column field="date" header="Date">
         <template #body="slotProps">
           {{ slotProps.data.date.toLocaleDateString() }}
         </template>
       </Column>
-      <Column sortable field="due_date" header="Due date">
+      <Column field="due_date" header="Due date">
         <template #body="slotProps">
           {{ slotProps.data.date.toLocaleDateString() }}
         </template>
       </Column>
-      <Column sortable field="seller_info" header="Seller info"></Column>
-      <Column sortable field="buyer_info" header="Buyer info"></Column>
+      <Column field="seller_info" header="Seller info"></Column>
+      <Column field="buyer_info" header="Buyer info"></Column>
       <Column field="items" header="Items">
         <template #body="slotProps">
           {{ slotProps.data.items.length }}
@@ -128,13 +128,6 @@ function confirmDelete(invoice?: Invoice | null) {
         </template>
       </Column>
     </DataTable>
-
-    <p class="my-8 px-4 text-sm text-gray-500">
-      Disclaimer: All invoice history is stored locally on your device. Please
-      note that this data may be lost if you uninstall the application or if
-      there are system errors. We recommend regularly backing up your important
-      invoices to prevent any potential loss.
-    </p>
 
     <Popover ref="actionsPopoverRef">
       <div class="flex flex-col gap-4 w-[120px]">

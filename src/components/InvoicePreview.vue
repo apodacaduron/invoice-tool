@@ -61,14 +61,14 @@ async function saveAsPdf() {
     });
 
     if (savePath) {
+      await storeInvoice();
       await writeBinaryFile(savePath, byteArray);
-      storeInvoice();
     } else {
       console.log('Save dialog was canceled.');
     }
   } else {
+    await storeInvoice();
     await pdfInstance.save(filename);
-    storeInvoice();
   }
 }
 
@@ -88,8 +88,9 @@ async function storeInvoice() {
     .select()
     .single();
   const invoiceId = invoiceResponse.data?.id;
+  invoiceStore.setActiveInvoiceId(invoiceId);
   await queryClient.invalidateQueries({ queryKey: ['invoices'] });
-  router.push(`/invoice/${invoiceId}`);
+  await router.push(`/invoice/${invoiceId}`);
 }
 </script>
 
