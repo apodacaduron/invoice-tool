@@ -5,7 +5,6 @@ import ConfirmDialog from 'primevue/confirmdialog';
 import { onMounted } from "vue";
 import { supabase } from "./config/supabase";
 import { useAuthStore } from "./stores";
-import SignInDialog from "./components/SignInDialog.vue";
 
 const authStore = useAuthStore()
 
@@ -23,7 +22,6 @@ onMounted(() => {
 <template>
   <ConfirmDialog />
   <Toast position="bottom-right" />
-  <SignInDialog v-model:visible="authStore.isSignInDialogVisible" />
   <div class="flex flex-col">
     <Navbar />
     <div class="flex-1">

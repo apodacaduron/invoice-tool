@@ -41,12 +41,15 @@ watch(
     header="Sign in to continue"
     :style="{ width: '25rem' }"
   >
-    <Button
-      @click="signInMutation.mutate"
-      fluid
-      icon="pi pi-google"
-      label="Sign in with Google"
-      :loading="signInMutation.isPending.value"
-    />
+    <div class="flex flex-col gap-3">
+      <Button
+        @click="signInMutation.mutate"
+        fluid
+        icon="pi pi-google"
+        label="Sign in with Google"
+        :loading="signInMutation.isPending.value"
+      />
+      <slot />
+    </div>
   </Dialog>
 </template>

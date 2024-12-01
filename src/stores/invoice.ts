@@ -89,17 +89,6 @@ export const useInvoiceStore = defineStore('invoice', () => {
     activeInvoice.value.id = id;
   }
 
-  function resetActiveInvoice() {
-    const initialInvoiceValues = getInvoiceInitialValues();
-
-    if (!activeInvoice.value?.id) return;
-
-    activeInvoice.value = {
-      ...initialInvoiceValues,
-      id: activeInvoice.value?.id,
-    };
-  }
-
   function hardResetActiveInvoice() {
     activeInvoice.value = getInvoiceInitialValues();
   }
@@ -112,7 +101,6 @@ export const useInvoiceStore = defineStore('invoice', () => {
     setActiveInvoice,
     activeInvoice,
     activeInvoiceTotal,
-    resetActiveInvoice,
     hardResetActiveInvoice,
     setActiveInvoiceId,
     $reset,

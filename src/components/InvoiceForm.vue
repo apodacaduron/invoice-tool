@@ -1,22 +1,19 @@
 <script setup lang="ts">
+import { ref, toRef, watch } from 'vue';
+import { useRoute } from 'vue-router';
+import { useQuery } from '@tanstack/vue-query';
+import { useAuthStore } from '@/stores';
+import { supabase } from '@/config/supabase';
+import { useInvoiceStore, buildInvoiceItem, deserializeInvoice, Invoice } from '@/stores/invoice';
+import { currencies } from '@/utils/currencies';
+
 import InputText from 'primevue/inputtext';
 import Textarea from 'primevue/textarea';
 import Button from 'primevue/button';
 import DatePicker from 'primevue/datepicker';
-import { ref, toRef, watch } from 'vue';
-import {
-  buildInvoiceItem,
-  deserializeInvoice,
-  Invoice,
-  useInvoiceStore,
-} from '@/stores/invoice';
 import Dialog from 'primevue/dialog';
-import { useQuery } from '@tanstack/vue-query';
-import { useRoute } from 'vue-router';
-import { currencies } from '@/utils/currencies';
 import Select from 'primevue/select';
-import { supabase } from '@/config/supabase';
-import { useAuthStore } from '@/stores';
+import ProgressSpinner from 'primevue/progressspinner';
 
 type Props = {
   showPreviewButton: boolean;
@@ -25,59 +22,57 @@ type Props = {
 defineProps<Props>();
 defineEmits(['preview']);
 
-const authStore = useAuthStore()
+const authStore = useAuthStore();
 const invoiceStore = useInvoiceStore();
-const invoiceForm = ref<Invoice | null>(invoiceStore.activeInvoice);
-const isRecentValuesOpen = ref(false);
-const recentValuesField = ref<keyof Invoice | null>(null);
 
-const route = useRoute();
-const recentValuesQuery = useQuery({
-  queryKey: toRef(() => ['recent-values-invoices', recentValuesField.value]),
-  async queryFn() {
-    const fieldKey = recentValuesField.value;
-    if (!fieldKey) throw new Error('Recent value field not provided');
-    const serializedInvoices = await supabase
-      .from('invoices')
-      .select()
-      .limit(10);
-    const deserializedInvoices =
-      serializedInvoices.data?.map(deserializeInvoice);
-    const uniqueFieldValues = [
-      ...new Set(
-        deserializedInvoices
-          ?.map((invoice) => invoice?.[fieldKey])
-          .filter(Boolean)
-      ),
-    ];
-    return uniqueFieldValues;
-  },
-  enabled: toRef(() => Boolean(recentValuesField.value) && authStore.isLoggedIn),
+const invoiceForm = ref<Invoice | null>(invoiceStore.activeInvoice);
+const recentValuesDialog = ref({
+  isOpen: false,
+  field: null as keyof Pick<Invoice, 'buyer_info' | 'seller_info'> | null,
 });
 
-function addItem() {
-  const nextInvoiceItem = buildInvoiceItem();
-  invoiceForm.value?.items.push(nextInvoiceItem);
+const route = useRoute();
+
+const recentValuesQuery = useQuery({
+  queryKey: toRef(() => ['recent-invoice-values', recentValuesDialog.value.field]),
+  queryFn: async () => {
+    const recentValueField = recentValuesDialog.value.field
+    if (!recentValueField) throw new Error('No field selected for recent values');
+    const { data } = await supabase.from('invoices').select().limit(10);
+    const deserializedInvoices = data?.map(deserializeInvoice);
+    const uniqueValues = Array.from(
+      new Set(
+        deserializedInvoices?.map((invoice) => invoice[recentValueField]).filter(Boolean)
+      )
+    );
+    return uniqueValues;
+  },
+  enabled: toRef(() => Boolean(recentValuesDialog.value.field) && authStore.isLoggedIn),
+});
+
+function addInvoiceItem() {
+  invoiceForm.value?.items.push(buildInvoiceItem());
 }
 
-function openRecentValuesDialog(field: keyof Invoice) {
-  isRecentValuesOpen.value = true;
-  recentValuesField.value = field;
+function openRecentValues(field: keyof Pick<Invoice, 'buyer_info' | 'seller_info'> | null) {
+  recentValuesDialog.value = { isOpen: true, field };
 }
 
-function setRecentValue(recentValue: any) {
-  if (!recentValuesField.value) return;
-  if (!invoiceForm.value) return;
-  invoiceForm.value[recentValuesField.value] = recentValue;
-  isRecentValuesOpen.value = false;
-  recentValuesField.value = null;
+function selectRecentValue(value: string) {
+  if (recentValuesDialog.value.field && invoiceForm.value) {
+    invoiceForm.value[recentValuesDialog.value.field] = value;
+    closeRecentValuesDialog();
+  }
+}
+
+function closeRecentValuesDialog() {
+  recentValuesDialog.value = { isOpen: false, field: null };
 }
 
 watch(
   invoiceForm,
-  (nextInvoiceForm) => {
-    if (!nextInvoiceForm) return;
-    invoiceStore.setActiveInvoice(nextInvoiceForm);
+  (updatedInvoice) => {
+    if (updatedInvoice) invoiceStore.setActiveInvoice(updatedInvoice);
   },
   { deep: true, immediate: true }
 );
@@ -129,7 +124,7 @@ watch(
         <div class="flex justify-between items-end">
           <label class="text-sm" for="seller_info">Your information</label>
           <Button
-            @click="openRecentValuesDialog('seller_info')"
+            @click="openRecentValues('seller_info')"
             small
             text
             label="Recent values"
@@ -152,7 +147,7 @@ watch(
         <div class="flex justify-between items-end">
           <label class="text-sm" for="buyer_info">Client information</label>
           <Button
-            @click="openRecentValuesDialog('buyer_info')"
+            @click="openRecentValues('buyer_info')"
             small
             text
             label="Recent values"
@@ -234,7 +229,7 @@ watch(
 
       <div class="flex flex-col gap-2 col-span-2 mt-2">
         <Button
-          @click="addItem"
+          @click="addInvoiceItem"
           label="Add item"
           severity="secondary"
           icon="pi pi-plus"
@@ -243,18 +238,21 @@ watch(
     </div>
 
     <Dialog
-      v-model:visible="isRecentValuesOpen"
+      v-model:visible="recentValuesDialog.isOpen"
       modal
-      :header="`Recent values - ${recentValuesField}`"
+      header="Recent values"
       :style="{ width: '25rem' }"
     >
-      <div class="flex flex-col gap-2">
+      <div v-if="recentValuesQuery.isLoading.value" class="flex justify-center items-center">
+        <ProgressSpinner />
+      </div>
+      <div v-else class="flex flex-col gap-2">
         <Button
           v-for="(recentValue, index) in recentValuesQuery.data.value"
           :key="index"
           text
           class="w-full"
-          @click="setRecentValue(recentValue)"
+          @click="selectRecentValue(recentValue)"
         >
           {{ recentValue ?? '-' }}
         </Button>

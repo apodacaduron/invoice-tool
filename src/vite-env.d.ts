@@ -6,10 +6,4 @@ declare module "*.vue" {
   export default component;
 }
 
-declare global {
-  interface Window {
-    __TAURI__?: typeof import('@tauri-apps/api');
-  }
-}
-
 declare module 'html2pdf.js'
