@@ -161,8 +161,16 @@ async function saveInvoiceToDatabase() {
               header="Description"
               class="!w-full"
             ></Column>
-            <Column field="quantity" header="Quantity"></Column>
-            <Column field="rate" header="Rate"></Column>
+            <Column field="quantity" header="Hours"></Column>
+            <Column field="rate" header="Rate">
+              <template #body="slotProps">
+                {{
+                  formatNumberToCurrency(
+                    slotProps.data.quantity * slotProps.data.rate
+                  )
+                }}
+              </template>
+            </Column>
             <Column key="amount" field="amount" header="Amount">
               <template #body="slotProps">
                 {{
