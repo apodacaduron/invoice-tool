@@ -11,6 +11,7 @@ import router from "@/config/router";
 import { useAuthStore } from "@/stores";
 import { supabase } from "@/config/supabase";
 import SignInDialog from "./SignInDialog.vue";
+import { useDark, useToggle } from "@vueuse/core";
 
 type Props = {
   showBackButton: boolean;
@@ -28,6 +29,8 @@ const PDF_OPTIONS = {
 
 const invoicePageRef = ref<HTMLElement | null>(null);
 
+const isDarkMode = useDark();
+const toggleDarkMode = useToggle(isDarkMode);
 const authStore = useAuthStore();
 const invoiceStore = useInvoiceStore();
 const queryClient = useQueryClient();
@@ -35,6 +38,9 @@ const pdfMutation = useMutation({ mutationFn: saveAsPdf });
 
 async function saveAsPdf() {
   if (!invoicePageRef.value) return;
+
+  const wasDarkMode = isDarkMode.value;
+  if (wasDarkMode) toggleDarkMode();
 
   const pdfInstance = html2pdf().set(PDF_OPTIONS).from(invoicePageRef.value);
   const date = invoiceStore.activeInvoice?.date
@@ -45,6 +51,8 @@ async function saveAsPdf() {
 
   await saveInvoiceToDatabase();
   await pdfInstance.save(filename);
+
+  if (wasDarkMode) toggleDarkMode();
 
   authStore.isSignInDialogVisible = false;
 }
@@ -106,32 +114,42 @@ async function saveInvoiceToDatabase() {
         </div>
         <div class="h-fit col-span-2 sm:col-span-1">
           <div class="flex justify-between items-center">
-            <div class="text-gray-500 font-bold text-sm">ID</div>
+            <div class="text-gray-500 dark:text-gray-200 font-bold text-sm">
+              ID
+            </div>
             <div class="text-xs">
               {{ invoiceStore.activeInvoice?.id }}
             </div>
           </div>
           <div class="flex justify-between items-center">
-            <div class="text-gray-500 font-bold text-sm">Date</div>
+            <div class="text-gray-500 dark:text-gray-200 font-bold text-sm">
+              Date
+            </div>
             <div class="text-xs">
               {{ invoiceStore.activeInvoice?.date?.toDateString() }}
             </div>
           </div>
           <div class="flex justify-between items-center">
-            <div class="text-gray-500 font-bold text-sm">Invoice due</div>
+            <div class="text-gray-500 dark:text-gray-200 font-bold text-sm">
+              Invoice due
+            </div>
             <div class="text-xs">
               {{ invoiceStore.activeInvoice?.due_date?.toDateString() }}
             </div>
           </div>
         </div>
         <div class="h-fit col-span-2 sm:col-span-1 whitespace-pre-wrap">
-          <div class="text-gray-500 font-bold text-sm">From</div>
+          <div class="text-gray-500 dark:text-gray-200 font-bold text-sm">
+            From
+          </div>
           <div class="text-sm">
             {{ invoiceStore.activeInvoice?.seller_info || "-" }}
           </div>
         </div>
         <div class="h-fit col-span-2 sm:col-span-1 whitespace-pre-wrap">
-          <div class="text-gray-500 font-bold text-sm">Bill to</div>
+          <div class="text-gray-500 dark:text-gray-200 font-bold text-sm">
+            Bill to
+          </div>
           <div class="text-sm">
             {{ invoiceStore.activeInvoice?.buyer_info || "-" }}
           </div>
@@ -158,7 +176,7 @@ async function saveInvoiceToDatabase() {
         </div>
         <div class="h-fit col-span-2 sm:col-span-1"></div>
         <div
-          class="h-fit col-span-2 sm:col-span-1 text-xl font-semibold mt-4 p-2 bg-gray-100"
+          class="h-fit col-span-2 sm:col-span-1 text-xl font-semibold mt-4 p-2 bg-gray-100 dark:bg-neutral-900"
         >
           <div class="flex justify-between items-center text-right p-4">
             <div class="text-gray-500 text-sm">Total</div>
@@ -198,7 +216,7 @@ async function saveInvoiceToDatabase() {
   }
 
   .page {
-    @apply shadow-lg border w-full max-w-[8.5in] min-h-[11in] bg-white;
+    @apply shadow-lg border dark:border-neutral-700 w-full max-w-[8.5in] min-h-[11in] bg-white dark:bg-neutral-800;
     @apply p-4 lg:p-10;
   }
 }

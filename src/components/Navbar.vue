@@ -1,47 +1,31 @@
 <script setup lang="ts">
-import { ref } from 'vue';
-import Drawer from 'primevue/drawer';
-import Button from 'primevue/button';
-import { useAuthStore } from '@/stores';
-import { useMutation } from '@tanstack/vue-query';
-import { supabase } from '@/config/supabase';
+import { ref } from "vue";
+import Drawer from "primevue/drawer";
+import Button from "primevue/button";
+import { useAuthStore } from "@/stores";
+import { useMutation } from "@tanstack/vue-query";
+import { supabase } from "@/config/supabase";
+import { useDark, useToggle } from "@vueuse/core";
 
 const drawerVisible = ref(false);
 
-const authStore = useAuthStore()
+const isDarkMode = useDark();
+const toggleDarkMode = useToggle(isDarkMode);
+const authStore = useAuthStore();
 const signInMutation = useMutation({
   async mutationFn() {
-    return supabase.auth.signInWithOAuth({ provider: 'google' });
+    return supabase.auth.signInWithOAuth({ provider: "google" });
   },
 });
 </script>
 
 <template>
-  <nav class="flex justify-between items-center border-b px-4 py-2 h-[60px]">
+  <nav class="flex justify-between items-center border-b dark:border-neutral-700 px-4 py-2 h-[60px]">
     <Button @click="drawerVisible = true" icon="pi pi-bars" text />
-
+    
     <router-link class="font-semibold" to="/">🧾 Invoice Tool</router-link>
 
-    <div class="flex gap-2">
-      <Button
-        text
-        size="small"
-        as="a"
-        label="❤️ Support me"
-        href="https://buymeacoffee.com/DanielApodaca"
-        target="_blank"
-        rel="noopener"
-      />
-      <Button
-        text
-        size="small"
-        as="a"
-        icon="pi pi-github"
-        href="https://github.com/apodacaduron/invoice-tool"
-        target="_blank"
-        rel="noopener"
-      />
-    </div>
+    <Button :icon="`pi ${isDarkMode ? 'pi-sun' : 'pi-moon'}`" @click="toggleDarkMode()" text />
   </nav>
 
   <Drawer v-model:visible="drawerVisible">
@@ -81,12 +65,50 @@ const signInMutation = useMutation({
             </ul>
           </div>
         </div>
-        <div class="flex flex-col px-6 pb-6">
+        <div class="flex flex-col px-6 pb-6 gap-2">
+          <Button
+            text
+            as="a"
+            label="❤️ Support me"
+            href="https://liberapay.com/apodacaduron/donate"
+            target="_blank"
+            rel="noopener"
+          />
+          <Button
+            text
+            as="a"
+            label="☕️ Buy me a coffee"
+            href="https://buymeacoffee.com/DanielApodaca"
+            target="_blank"
+            rel="noopener"
+          />
+          <Button
+            text
+            as="a"
+            icon="pi pi-github"
+            label="Github"
+            href="https://github.com/apodacaduron/invoice-tool"
+            target="_blank"
+            rel="noopener"
+          />
+
           <div v-if="authStore.isLoggedIn">
-            <Button @click="authStore.signOut" fluid icon="pi pi-sign-out" label="Sign out" outlined />
+            <Button
+              @click="authStore.signOut"
+              fluid
+              icon="pi pi-sign-out"
+              label="Sign out"
+              outlined
+            />
           </div>
           <div v-else>
-            <Button @click="signInMutation.mutate" fluid icon="pi pi-google" label="Sign in with Google" :loading="signInMutation.isPending.value" />
+            <Button
+              @click="signInMutation.mutate"
+              fluid
+              icon="pi pi-google"
+              label="Sign in with Google"
+              :loading="signInMutation.isPending.value"
+            />
           </div>
         </div>
       </div>
