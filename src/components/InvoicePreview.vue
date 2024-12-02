@@ -35,6 +35,7 @@ const authStore = useAuthStore();
 const invoiceStore = useInvoiceStore();
 const queryClient = useQueryClient();
 const pdfMutation = useMutation({ mutationFn: saveAsPdf });
+const saveToDatabaseMutation = useMutation({ mutationFn: saveInvoiceToDatabase });
 
 async function saveAsPdf() {
   if (!invoicePageRef.value) return;
@@ -97,22 +98,32 @@ async function saveInvoiceToDatabase() {
         />
         <h2 class="invoice__title">Preview</h2>
       </div>
-      <div>
+      <div class="flex gap-2">
+        <Button
+          v-if="authStore.isLoggedIn"
+          @click="saveToDatabaseMutation.mutate"
+          size="small"
+          label="Save"
+          icon="pi pi-save"
+          :disabled="saveToDatabaseMutation.isPending.value || pdfMutation.isPending.value"
+          :loading="saveToDatabaseMutation.isPending.value"
+        />
         <Button
           @click="handleDownloadInvoice"
           size="small"
-          label="Save"
+          :label="authStore.isLoggedIn ? 'Save & Download' : 'Download'"
           icon="pi pi-download"
+          :disabled="pdfMutation.isPending.value || saveToDatabaseMutation.isPending.value"
           :loading="pdfMutation.isPending.value"
         />
       </div>
     </div>
     <div class="page">
       <div ref="invoicePageRef" class="grid grid-cols-2 gap-4">
-        <div class="h-fit col-span-2 sm:col-span-1">
+        <div :class="['h-fit sm:col-span-1', { 'col-span-2': !pdfMutation.isPending.value }]">
           <div class="text-4xl font-bold mb-3">INVOICE</div>
         </div>
-        <div class="h-fit col-span-2 sm:col-span-1">
+        <div :class="['h-fit sm:col-span-1', { 'col-span-2': !pdfMutation.isPending.value }]">
           <div class="flex justify-between items-center">
             <div class="text-gray-500 dark:text-gray-200 font-bold text-sm">
               ID
@@ -138,7 +149,7 @@ async function saveInvoiceToDatabase() {
             </div>
           </div>
         </div>
-        <div class="h-fit col-span-2 sm:col-span-1 whitespace-pre-wrap">
+        <div :class="['h-fit sm:col-span-1 whitespace-pre-wrap', { 'col-span-2': !pdfMutation.isPending.value }]">
           <div class="text-gray-500 dark:text-gray-200 font-bold text-sm">
             From
           </div>
@@ -146,7 +157,7 @@ async function saveInvoiceToDatabase() {
             {{ invoiceStore.activeInvoice?.seller_info || "-" }}
           </div>
         </div>
-        <div class="h-fit col-span-2 sm:col-span-1 whitespace-pre-wrap">
+        <div :class="['h-fit sm:col-span-1 whitespace-pre-wrap', { 'col-span-2': !pdfMutation.isPending.value }]">
           <div class="text-gray-500 dark:text-gray-200 font-bold text-sm">
             Bill to
           </div>
@@ -178,9 +189,9 @@ async function saveInvoiceToDatabase() {
             </Column>
           </DataTable>
         </div>
-        <div class="h-fit col-span-2 sm:col-span-1"></div>
+        <div :class="['h-fit sm:col-span-1', { 'col-span-2': !pdfMutation.isPending.value }]"></div>
         <div
-          class="h-fit col-span-2 sm:col-span-1 text-xl font-semibold mt-4 p-2 bg-gray-100 dark:bg-neutral-900"
+          :class="['h-fit sm:col-span-1 text-xl font-semibold mt-4 p-2 bg-gray-100 dark:bg-neutral-900', { 'col-span-2': !pdfMutation.isPending.value }]"
         >
           <div class="flex justify-between items-center text-right p-4">
             <div class="text-gray-500 text-sm">Total</div>

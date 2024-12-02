@@ -8,7 +8,7 @@ import { deserializeInvoice, useInvoiceStore } from "@/stores/invoice";
 import { useQuery } from "@tanstack/vue-query";
 import BlockUI from "primevue/blockui";
 import ProgressSpinner from "primevue/progressspinner";
-import { ref, toRef, watchEffect } from "vue";
+import { ref, toRef, watch } from "vue";
 import { useRoute, useRouter } from "vue-router";
 
 const invoiceContainerRef = ref<HTMLDivElement | null>(null);
@@ -33,16 +33,13 @@ const invoiceQuery = useQuery({
 
 const isMobile = toRef(() => invoiceContainerDimensions.value.width < 1024)
 
-watchEffect(() => {
-  const isInvoiceLoading = invoiceQuery.isLoading.value
-  if (isInvoiceLoading) return
-  const hasInvoice = invoiceQuery.data.value
-  if (hasInvoice) {
-    return invoiceStore.setActiveInvoice({...invoiceQuery.data.value})
-  }
 
-  router.push('/404')
-})
+watch([invoiceQuery.isSuccess, () => invoiceQuery.data.value], ([isSuccess, invoiceData]) => {
+  if (!isSuccess) return;
+  if (!invoiceData) return router.push('/404');
+
+  return invoiceStore.setActiveInvoice({ ...invoiceData, items: JSON.parse(JSON.stringify(invoiceData.items)) })
+}, { immediate: true })
 </script>
 
 <template>
