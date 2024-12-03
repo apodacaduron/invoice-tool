@@ -111,7 +111,7 @@ async function saveInvoiceToDatabase() {
         <Button
           @click="handleDownloadInvoice"
           size="small"
-          :label="authStore.isLoggedIn ? 'Save & Download' : 'Download'"
+          label="Download"
           icon="pi pi-download"
           :disabled="pdfMutation.isPending.value || saveToDatabaseMutation.isPending.value"
           :loading="pdfMutation.isPending.value"
