@@ -4,7 +4,6 @@ import { deserializeInvoice, Invoice, useAuthStore } from "@/stores";
 import { formatNumberToCurrency } from "@/utils/formatNumber";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/vue-query";
 import Button from "primevue/button";
-import Chip from "primevue/chip";
 import Popover from "primevue/popover";
 import { useConfirm } from "primevue/useconfirm";
 import { useToast } from "primevue/usetoast";
