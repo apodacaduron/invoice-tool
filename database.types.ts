@@ -18,6 +18,7 @@ export type Database = {
           due_date: string | null
           id: string
           items: Json
+          notes: string | null
           seller_info: string
           short_id: string
           user_id: string
@@ -30,6 +31,7 @@ export type Database = {
           due_date?: string | null
           id?: string
           items: Json
+          notes?: string | null
           seller_info: string
           short_id: string
           user_id?: string
@@ -42,6 +44,7 @@ export type Database = {
           due_date?: string | null
           id?: string
           items?: Json
+          notes?: string | null
           seller_info?: string
           short_id?: string
           user_id?: string

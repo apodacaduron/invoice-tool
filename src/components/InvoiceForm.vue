@@ -1,26 +1,31 @@
 <script setup lang="ts">
-import { ref, toRef, watch } from 'vue';
-import { useRoute } from 'vue-router';
-import { useQuery } from '@tanstack/vue-query';
-import { useAuthStore } from '@/stores';
-import { supabase } from '@/config/supabase';
-import { useInvoiceStore, buildInvoiceItem, deserializeInvoice, Invoice } from '@/stores/invoice';
-import { currencies } from '@/utils/currencies';
+import { ref, toRef, watch } from "vue";
+import { useRoute } from "vue-router";
+import { useQuery } from "@tanstack/vue-query";
+import { useAuthStore } from "@/stores";
+import { supabase } from "@/config/supabase";
+import {
+  useInvoiceStore,
+  buildInvoiceItem,
+  deserializeInvoice,
+  Invoice,
+} from "@/stores/invoice";
+import { currencies } from "@/utils/currencies";
 
-import InputText from 'primevue/inputtext';
-import Textarea from 'primevue/textarea';
-import Button from 'primevue/button';
-import DatePicker from 'primevue/datepicker';
-import Dialog from 'primevue/dialog';
-import Select from 'primevue/select';
-import ProgressSpinner from 'primevue/progressspinner';
+import InputText from "primevue/inputtext";
+import Textarea from "primevue/textarea";
+import Button from "primevue/button";
+import DatePicker from "primevue/datepicker";
+import Dialog from "primevue/dialog";
+import Select from "primevue/select";
+import ProgressSpinner from "primevue/progressspinner";
 
 type Props = {
   showPreviewButton: boolean;
 };
 
 defineProps<Props>();
-defineEmits(['preview']);
+defineEmits(["preview"]);
 
 const authStore = useAuthStore();
 const invoiceStore = useInvoiceStore();
@@ -28,38 +33,54 @@ const invoiceStore = useInvoiceStore();
 const invoiceForm = ref<Invoice | null>(invoiceStore.activeInvoice);
 const recentValuesDialog = ref({
   isOpen: false,
-  field: null as keyof Pick<Invoice, 'buyer_info' | 'seller_info'> | null,
+  field: null as
+    | keyof Pick<Invoice, "buyer_info" | "seller_info" | "notes">
+    | null,
 });
 
 const route = useRoute();
 
 const recentValuesQuery = useQuery({
-  queryKey: toRef(() => ['recent-invoice-values', recentValuesDialog.value.field]),
+  queryKey: toRef(() => [
+    "recent-invoice-values",
+    recentValuesDialog.value.field,
+  ]),
   queryFn: async () => {
-    const recentValueField = recentValuesDialog.value.field
-    if (!recentValueField) throw new Error('No field selected for recent values');
-    const { data } = await supabase.from('invoices').select().limit(10);
+    const recentValueField = recentValuesDialog.value.field;
+    if (!recentValueField)
+      throw new Error("No field selected for recent values");
+    const { data } = await supabase
+      .from("invoices")
+      .select()
+      .order("created_at", { ascending: false })
+      .limit(10);
     const deserializedInvoices = data?.map(deserializeInvoice);
     const uniqueValues = Array.from(
       new Set(
-        deserializedInvoices?.map((invoice) => invoice[recentValueField]).filter(Boolean)
+        deserializedInvoices
+          ?.map((invoice) => invoice[recentValueField])
+          .filter(Boolean)
       )
     );
     return uniqueValues;
   },
-  enabled: toRef(() => Boolean(recentValuesDialog.value.field) && authStore.isLoggedIn),
+  enabled: toRef(
+    () => Boolean(recentValuesDialog.value.field) && authStore.isLoggedIn
+  ),
 });
 
 function addInvoiceItem() {
   invoiceForm.value?.items.push(buildInvoiceItem());
 }
 
-function openRecentValues(field: keyof Pick<Invoice, 'buyer_info' | 'seller_info'> | null) {
+function openRecentValues(
+  field: keyof Pick<Invoice, "buyer_info" | "seller_info" | "notes"> | null
+) {
   recentValuesDialog.value = { isOpen: true, field };
 }
 
-function selectRecentValue(value: string) {
-  if (recentValuesDialog.value.field && invoiceForm.value) {
+function selectRecentValue(value: string | null) {
+  if (recentValuesDialog.value.field && invoiceForm.value && value) {
     invoiceForm.value[recentValuesDialog.value.field] = value;
     closeRecentValuesDialog();
   }
@@ -165,6 +186,29 @@ watch(
         ></Textarea>
       </div>
 
+      <!-- Notes -->
+      <div class="flex flex-col gap-2 col-span-2">
+        <div class="flex justify-between items-end">
+          <label class="text-sm" for="notes">Notes</label>
+          <Button
+            @click="openRecentValues('notes')"
+            small
+            text
+            label="Recent values"
+            icon="pi pi-history"
+            class="!py-0"
+            v-if="authStore.isLoggedIn"
+          />
+        </div>
+        <Textarea
+          id="notes"
+          :autoResize="true"
+          v-model="invoiceForm.notes"
+          class="border rounded p-2"
+          placeholder="Enter invoice notes"
+        ></Textarea>
+      </div>
+
       <!-- Currency -->
       <div class="flex flex-col gap-2 col-span-2">
         <label class="text-sm" for="currency">Currency</label>
@@ -198,12 +242,12 @@ watch(
         </div>
 
         <div class="flex flex-col gap-2 col-span-1">
-          <label class="text-sm" for="quantity">Quantity</label>
+          <label class="text-sm" for="quantity">Hours</label>
           <InputText
             v-model="item.quantity"
             id="quantity"
             type="number"
-            placeholder="Enter quantity"
+            placeholder="Enter hours"
           />
         </div>
 
@@ -243,8 +287,18 @@ watch(
       header="Recent values"
       :style="{ width: '25rem' }"
     >
-      <div v-if="recentValuesQuery.isLoading.value" class="flex justify-center items-center">
+      <div
+        v-if="recentValuesQuery.isLoading.value"
+        class="flex justify-center items-center"
+      >
         <ProgressSpinner />
+      </div>
+      <div
+        v-else-if="!recentValuesQuery.data.value?.length"
+        class="flex flex-col items-center text-center space-y-4"
+      >
+        <i class="pi pi-inbox" style="font-size: 2rem"></i>
+        <p class="text-gray-500">No recent values found</p>
       </div>
       <div v-else class="flex flex-col gap-2">
         <Button
@@ -254,7 +308,7 @@ watch(
           class="w-full"
           @click="selectRecentValue(recentValue)"
         >
-          {{ recentValue ?? '-' }}
+          {{ recentValue ?? "-" }}
         </Button>
       </div>
     </Dialog>

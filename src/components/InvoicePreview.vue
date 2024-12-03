@@ -35,7 +35,9 @@ const authStore = useAuthStore();
 const invoiceStore = useInvoiceStore();
 const queryClient = useQueryClient();
 const pdfMutation = useMutation({ mutationFn: saveAsPdf });
-const saveToDatabaseMutation = useMutation({ mutationFn: saveInvoiceToDatabase });
+const saveToDatabaseMutation = useMutation({
+  mutationFn: saveInvoiceToDatabase,
+});
 
 async function saveAsPdf() {
   if (!invoicePageRef.value) return;
@@ -105,7 +107,10 @@ async function saveInvoiceToDatabase() {
           size="small"
           label="Save"
           icon="pi pi-save"
-          :disabled="saveToDatabaseMutation.isPending.value || pdfMutation.isPending.value"
+          :disabled="
+            saveToDatabaseMutation.isPending.value ||
+            pdfMutation.isPending.value
+          "
           :loading="saveToDatabaseMutation.isPending.value"
         />
         <Button
@@ -113,23 +118,36 @@ async function saveInvoiceToDatabase() {
           size="small"
           label="Download"
           icon="pi pi-download"
-          :disabled="pdfMutation.isPending.value || saveToDatabaseMutation.isPending.value"
+          :disabled="
+            pdfMutation.isPending.value ||
+            saveToDatabaseMutation.isPending.value
+          "
           :loading="pdfMutation.isPending.value"
         />
       </div>
     </div>
     <div class="page">
       <div ref="invoicePageRef" class="grid grid-cols-2 gap-4">
-        <div :class="['h-fit sm:col-span-1', { 'col-span-2': !pdfMutation.isPending.value }]">
+        <div
+          :class="[
+            'h-fit sm:col-span-1',
+            { 'col-span-2': !pdfMutation.isPending.value },
+          ]"
+        >
           <div class="text-4xl font-bold mb-3">INVOICE</div>
         </div>
-        <div :class="['h-fit sm:col-span-1', { 'col-span-2': !pdfMutation.isPending.value }]">
+        <div
+          :class="[
+            'h-fit sm:col-span-1',
+            { 'col-span-2': !pdfMutation.isPending.value },
+          ]"
+        >
           <div class="flex justify-between items-center">
             <div class="text-gray-500 dark:text-gray-200 font-bold text-sm">
               ID
             </div>
             <div class="text-xs">
-              {{ invoiceStore.activeInvoice?.id }}
+              {{ invoiceStore.activeInvoice?.id || "-" }}
             </div>
           </div>
           <div class="flex justify-between items-center">
@@ -137,7 +155,7 @@ async function saveInvoiceToDatabase() {
               Date
             </div>
             <div class="text-xs">
-              {{ invoiceStore.activeInvoice?.date?.toDateString() }}
+              {{ invoiceStore.activeInvoice?.date?.toDateString() || "-" }}
             </div>
           </div>
           <div class="flex justify-between items-center">
@@ -145,11 +163,16 @@ async function saveInvoiceToDatabase() {
               Invoice due
             </div>
             <div class="text-xs">
-              {{ invoiceStore.activeInvoice?.due_date?.toDateString() }}
+              {{ invoiceStore.activeInvoice?.due_date?.toDateString() || "-" }}
             </div>
           </div>
         </div>
-        <div :class="['h-fit sm:col-span-1 whitespace-pre-wrap', { 'col-span-2': !pdfMutation.isPending.value }]">
+        <div
+          :class="[
+            'h-fit sm:col-span-1 whitespace-pre-wrap',
+            { 'col-span-2': !pdfMutation.isPending.value },
+          ]"
+        >
           <div class="text-gray-500 dark:text-gray-200 font-bold text-sm">
             From
           </div>
@@ -157,7 +180,12 @@ async function saveInvoiceToDatabase() {
             {{ invoiceStore.activeInvoice?.seller_info || "-" }}
           </div>
         </div>
-        <div :class="['h-fit sm:col-span-1 whitespace-pre-wrap', { 'col-span-2': !pdfMutation.isPending.value }]">
+        <div
+          :class="[
+            'h-fit sm:col-span-1 whitespace-pre-wrap',
+            { 'col-span-2': !pdfMutation.isPending.value },
+          ]"
+        >
           <div class="text-gray-500 dark:text-gray-200 font-bold text-sm">
             Bill to
           </div>
@@ -167,15 +195,19 @@ async function saveInvoiceToDatabase() {
         </div>
         <div class="h-fit col-span-2 text-sm whitespace-pre-wrap">
           <DataTable :value="invoiceStore.activeInvoice?.items">
-            <Column
-              field="description"
-              header="Description"
-              class="!w-full"
-            ></Column>
-            <Column field="quantity" header="Hours"></Column>
+            <Column field="description" header="Description" class="!w-full">
+              <template #body="slotProps">
+                {{ slotProps.data.description || "-" }}
+              </template>
+            </Column>
+            <Column field="quantity" header="Hours">
+              <template #body="slotProps">
+                {{ slotProps.data.quantity || "-" }}
+              </template>
+            </Column>
             <Column field="rate" header="Rate">
               <template #body="slotProps">
-                {{ formatNumberToCurrency(slotProps.data.rate) }}
+                {{ formatNumberToCurrency(slotProps.data.rate) || "-" }}
               </template>
             </Column>
             <Column key="amount" field="amount" header="Amount">
@@ -183,23 +215,39 @@ async function saveInvoiceToDatabase() {
                 {{
                   formatNumberToCurrency(
                     slotProps.data.quantity * slotProps.data.rate
-                  )
+                  ) || "-"
                 }}
               </template>
             </Column>
           </DataTable>
         </div>
-        <div :class="['h-fit sm:col-span-1', { 'col-span-2': !pdfMutation.isPending.value }]"></div>
         <div
-          :class="['h-fit sm:col-span-1 text-xl font-semibold mt-4 p-2 bg-gray-100 dark:bg-neutral-900', { 'col-span-2': !pdfMutation.isPending.value }]"
+          :class="[
+            'h-fit sm:col-span-1',
+            { 'col-span-2': !pdfMutation.isPending.value },
+          ]"
+        ></div>
+        <div
+          :class="[
+            'h-fit sm:col-span-1 text-xl font-semibold mt-4 p-2 bg-gray-100 dark:bg-neutral-900',
+            { 'col-span-2': !pdfMutation.isPending.value },
+          ]"
         >
           <div class="flex justify-between items-center text-right p-4">
             <div class="text-gray-500 text-sm">Total</div>
             <div>
-              {{ formatNumberToCurrency(invoiceStore.activeInvoiceTotal) }}
-              {{ invoiceStore.activeInvoice?.currency ?? "USD" }}
+              {{
+                formatNumberToCurrency(invoiceStore.activeInvoiceTotal) || "-"
+              }}
+              {{ invoiceStore.activeInvoice?.currency || "USD" }}
             </div>
           </div>
+        </div>
+        <div v-if="invoiceStore.activeInvoice?.notes" class="h-fit col-span-2 text-sm whitespace-pre-wrap">
+          Notes:
+          <p>
+            {{ invoiceStore.activeInvoice?.notes }}
+          </p>
         </div>
       </div>
     </div>

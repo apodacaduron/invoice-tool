@@ -7,6 +7,7 @@ export type InvoiceSerialized = Tables<'invoices'>;
 export type Invoice = Omit<InvoiceSerialized, 'date' | 'due_date' | 'created_at' | 'user_id' | 'items' | 'id'> & {
   date: Date | null;
   due_date: Date | null;
+  notes?: string | null;
   id?: string;
   created_at?: Date | null;
   user_id?: string;
@@ -39,6 +40,7 @@ export function getInvoiceInitialValues(): Omit<
     short_id: nanoid(),
     date: new Date(),
     due_date: new Date(),
+    notes: '',
     seller_info: '',
     buyer_info: '',
     currency: 'USD',
