@@ -293,7 +293,7 @@ watch(
           class="w-full"
           @click="selectRecentValue(recentValue.info, 'seller_info')"
         >
-          {{ recentValue ?? "-" }}
+          {{ recentValue.info ?? "-" }}
         </Button>
       </div>
     </Dialog>
@@ -325,7 +325,7 @@ watch(
           class="w-full"
           @click="selectRecentValue(recentValue.info, 'buyer_info')"
         >
-          {{ recentValue ?? "-" }}
+          {{ recentValue.info ?? "-" }}
         </Button>
       </div>
     </Dialog>
