@@ -31,41 +31,31 @@ const authStore = useAuthStore();
 const invoiceStore = useInvoiceStore();
 
 const invoiceForm = ref<Invoice | null>(invoiceStore.activeInvoice);
-const recentValuesDialog = ref({
-  isOpen: false,
-  field: null as
-    | keyof Pick<Invoice, "buyer_info" | "seller_info" | "notes">
-    | null,
-});
+const isRecentSellersDialogOpen = ref(false);
+const isRecentBuyersDialogOpen = ref(false);
 
 const route = useRoute();
 
-const recentValuesQuery = useQuery({
-  queryKey: toRef(() => [
-    "recent-invoice-values",
-    recentValuesDialog.value.field,
-  ]),
-  queryFn: async () => {
-    const recentValueField = recentValuesDialog.value.field;
-    if (!recentValueField)
-      throw new Error("No field selected for recent values");
-    const { data } = await supabase
-      .from("invoices")
+const recentSellersQuery = useQuery({
+  queryKey: ["recent-sellers"],
+  queryFn: async () => await supabase
+      .from("sellers")
       .select()
       .order("created_at", { ascending: false })
-      .limit(10);
-    const deserializedInvoices = data?.map(deserializeInvoice);
-    const uniqueValues = Array.from(
-      new Set(
-        deserializedInvoices
-          ?.map((invoice) => invoice[recentValueField])
-          .filter(Boolean)
-      )
-    );
-    return uniqueValues;
-  },
+      .limit(10),
   enabled: toRef(
-    () => Boolean(recentValuesDialog.value.field) && authStore.isLoggedIn
+    () => isRecentSellersDialogOpen.value && authStore.isLoggedIn
+  ),
+});
+const recentBuyersQuery = useQuery({
+  queryKey: ["recent-buyers"],
+  queryFn: async () => await supabase
+      .from("buyers")
+      .select()
+      .order("created_at", { ascending: false })
+      .limit(10),
+  enabled: toRef(
+    () => isRecentBuyersDialogOpen.value && authStore.isLoggedIn
   ),
 });
 
@@ -73,21 +63,17 @@ function addInvoiceItem() {
   invoiceForm.value?.items.push(buildInvoiceItem());
 }
 
-function openRecentValues(
-  field: keyof Pick<Invoice, "buyer_info" | "seller_info" | "notes"> | null
-) {
-  recentValuesDialog.value = { isOpen: true, field };
-}
+function selectRecentValue(value: string | null, field: keyof Pick<Invoice, 'buyer_info' | 'seller_info'>) {
+  if (!invoiceForm.value) return
+  if (value === null) return
 
-function selectRecentValue(value: string | null) {
-  if (recentValuesDialog.value.field && invoiceForm.value && value) {
-    invoiceForm.value[recentValuesDialog.value.field] = value;
-    closeRecentValuesDialog();
-  }
+  invoiceForm.value[field] = value;
+  closeRecentValuesDialog();
 }
 
 function closeRecentValuesDialog() {
-  recentValuesDialog.value = { isOpen: false, field: null };
+  isRecentBuyersDialogOpen.value = false;
+  isRecentSellersDialogOpen.value = false;
 }
 
 watch(
@@ -145,7 +131,7 @@ watch(
         <div class="flex justify-between items-end">
           <label class="text-sm" for="seller_info">Your information</label>
           <Button
-            @click="openRecentValues('seller_info')"
+            @click="isRecentSellersDialogOpen = true"
             small
             text
             label="Recent values"
@@ -168,7 +154,7 @@ watch(
         <div class="flex justify-between items-end">
           <label class="text-sm" for="buyer_info">Client information</label>
           <Button
-            @click="openRecentValues('buyer_info')"
+            @click="isRecentBuyersDialogOpen = true"
             small
             text
             label="Recent values"
@@ -188,7 +174,7 @@ watch(
 
       <!-- Notes -->
       <div class="flex flex-col gap-2 col-span-2">
-        <div class="flex justify-between items-end">
+        <!-- <div class="flex justify-between items-end">
           <label class="text-sm" for="notes">Notes</label>
           <Button
             @click="openRecentValues('notes')"
@@ -199,7 +185,7 @@ watch(
             class="!py-0"
             v-if="authStore.isLoggedIn"
           />
-        </div>
+        </div> -->
         <Textarea
           id="notes"
           :autoResize="true"
@@ -282,19 +268,19 @@ watch(
     </div>
 
     <Dialog
-      v-model:visible="recentValuesDialog.isOpen"
+      v-model:visible="isRecentSellersDialogOpen"
       modal
       header="Recent values"
       :style="{ width: '25rem' }"
     >
       <div
-        v-if="recentValuesQuery.isLoading.value"
+        v-if="recentSellersQuery.isLoading.value"
         class="flex justify-center items-center"
       >
         <ProgressSpinner />
       </div>
       <div
-        v-else-if="!recentValuesQuery.data.value?.length"
+        v-else-if="!recentSellersQuery.data.value?.data?.length"
         class="flex flex-col items-center text-center space-y-4"
       >
         <i class="pi pi-inbox" style="font-size: 2rem"></i>
@@ -302,11 +288,43 @@ watch(
       </div>
       <div v-else class="flex flex-col gap-2">
         <Button
-          v-for="(recentValue, index) in recentValuesQuery.data.value"
+          v-for="(recentValue, index) in recentSellersQuery.data.value.data"
           :key="index"
           text
           class="w-full"
-          @click="selectRecentValue(recentValue)"
+          @click="selectRecentValue(recentValue.info, 'seller_info')"
+        >
+          {{ recentValue ?? "-" }}
+        </Button>
+      </div>
+    </Dialog>
+
+    <Dialog
+      v-model:visible="isRecentBuyersDialogOpen"
+      modal
+      header="Recent values"
+      :style="{ width: '25rem' }"
+    >
+      <div
+        v-if="recentBuyersQuery.isLoading.value"
+        class="flex justify-center items-center"
+      >
+        <ProgressSpinner />
+      </div>
+      <div
+        v-else-if="!recentBuyersQuery.data.value?.data?.length"
+        class="flex flex-col items-center text-center space-y-4"
+      >
+        <i class="pi pi-inbox" style="font-size: 2rem"></i>
+        <p class="text-gray-500">No recent values found</p>
+      </div>
+      <div v-else class="flex flex-col gap-2">
+        <Button
+          v-for="(recentValue, index) in recentBuyersQuery.data.value?.data"
+          :key="index"
+          text
+          class="w-full"
+          @click="selectRecentValue(recentValue.info, 'buyer_info')"
         >
           {{ recentValue ?? "-" }}
         </Button>

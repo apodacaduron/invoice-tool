@@ -6,7 +6,8 @@
   "scripts": {
     "dev": "vite",
     "build": "vue-tsc --noEmit && vite build",
-    "preview": "vite preview"
+    "preview": "vite preview",
+    "generate-types": "npx supabase gen types typescript --project-id 'msoloxkubjdinqyeutzb' --schema public > database.types.ts"
   },
   "dependencies": {
     "@primevue/themes": "^4.0.7",
