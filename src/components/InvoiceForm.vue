@@ -7,7 +7,6 @@ import { supabase } from "@/config/supabase";
 import {
   useInvoiceStore,
   buildInvoiceItem,
-  deserializeInvoice,
   Invoice,
 } from "@/stores/invoice";
 import { currencies } from "@/utils/currencies";
