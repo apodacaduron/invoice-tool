@@ -4,14 +4,12 @@ import Button from "primevue/button";
 import DataTable from "primevue/datatable";
 import Column from "primevue/column";
 import { ref } from "vue";
-import html2pdf from "html2pdf.js";
 import { useMutation, useQueryClient } from "@tanstack/vue-query";
 import { formatNumberToCurrency } from "@/utils/formatNumber";
 import router from "@/config/router";
 import { useAuthStore } from "@/stores";
 import { supabase } from "@/config/supabase";
 import SignInDialog from "./SignInDialog.vue";
-import { useDark, useToggle } from "@vueuse/core";
 
 type Props = {
   showBackButton: boolean;
@@ -20,17 +18,8 @@ type Props = {
 defineProps<Props>();
 defineEmits(["backToForm"]);
 
-const PDF_OPTIONS = {
-  margin: [0.3, 0.5, 1, 0.5],
-  image: { type: "jpeg", quality: 0.98 },
-  html2canvas: { scale: 2 },
-  jsPDF: { unit: "in", format: "letter", orientation: "portrait" },
-};
-
 const invoicePageRef = ref<HTMLElement | null>(null);
 
-const isDarkMode = useDark();
-const toggleDarkMode = useToggle(isDarkMode);
 const authStore = useAuthStore();
 const invoiceStore = useInvoiceStore();
 const queryClient = useQueryClient();
@@ -40,24 +29,52 @@ const saveToDatabaseMutation = useMutation({
 });
 
 async function saveAsPdf() {
-  if (!invoicePageRef.value) return;
+  try {
+    if (!invoicePageRef.value) return;
 
-  const wasDarkMode = isDarkMode.value;
-  if (wasDarkMode) toggleDarkMode();
+    await saveInvoiceToDatabase();
 
-  const pdfInstance = html2pdf().set(PDF_OPTIONS).from(invoicePageRef.value);
-  const date = invoiceStore.activeInvoice?.date
-    ?.toDateString()
-    .replaceAll(" ", "-")
-    .toLowerCase();
-  const filename = `invoice-${date || "unknown"}.pdf`;
+    const {
+      data: { session },
+      error: sessionError,
+    } = await supabase.auth.getSession();
+    if (sessionError || !session) throw new Error("Usuario no autenticado");
 
-  await saveInvoiceToDatabase();
-  await pdfInstance.save(filename);
+    const token = session.access_token;
+    const response = await fetch("/functions/generate-pdf", {
+      method: "POST",
+      headers: {
+        "Content-Type": "application/json",
+        Authorization: `Bearer ${token}`,
+      },
+      body: JSON.stringify({ uuid: invoiceStore.activeInvoice?.id }),
+    });
 
-  if (wasDarkMode) toggleDarkMode();
+    if (!response.ok) {
+      const errText = await response.text();
+      throw new Error(`PDF generation failed: ${errText}`);
+    }
 
-  authStore.isSignInDialogVisible = false;
+    const invoiceId = invoiceStore.activeInvoice?.id || "unknown";
+    const invoiceDate = invoiceStore.activeInvoice?.date
+      ? new Date(invoiceStore.activeInvoice.date).toISOString().split("T")[0]
+      : "unknown";
+
+    const filename = `invoice-${invoiceId}-${invoiceDate}.pdf`;
+
+    const blob = await response.blob();
+    const url = URL.createObjectURL(blob);
+    const link = document.createElement("a");
+    link.href = url;
+    link.download = filename;
+    link.click();
+    URL.revokeObjectURL(url);
+
+    authStore.isSignInDialogVisible = false;
+  } catch (err) {
+    console.error(err);
+    // optional: show toast/error to user
+  }
 }
 
 function handleDownloadInvoice() {
@@ -243,7 +260,10 @@ async function saveInvoiceToDatabase() {
             </div>
           </div>
         </div>
-        <div v-if="invoiceStore.activeInvoice?.notes" class="h-fit col-span-2 text-sm whitespace-pre-wrap">
+        <div
+          v-if="invoiceStore.activeInvoice?.notes"
+          class="h-fit col-span-2 text-sm whitespace-pre-wrap"
+        >
           Notes:
           <p>
             {{ invoiceStore.activeInvoice?.notes }}
