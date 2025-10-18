@@ -32,9 +32,17 @@ async function callPdfThing() {
     }
   };
 
+  const {
+        data: { session },
+        error: sessionError,
+      } = await supabase.auth.getSession();
+      if (sessionError || !session) throw new Error("Usuario no autenticado");
+
+      const token = session.access_token;
+
   const response = await fetch("https://msoloxkubjdinqyeutzb.supabase.co/functions/v1/generate-pdf", {
     method: "POST",
-    headers: { "Content-Type": "application/json" },
+    headers: { "Content-Type": "application/json", "Authorization": `Bearer ${token}` },
     body: JSON.stringify(invoiceData),
   });
 
