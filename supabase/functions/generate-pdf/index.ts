@@ -140,21 +140,54 @@ serve(async (req) => {
     // draw header (invoice title + meta)
     const drawHeader = () => {
       drawText(page, "INVOICE", margin, y, 36, { bold: true });
-      // meta on the right
-      drawText(page, "ID", PAGE_W - margin - 180, y, 12, { bold: true, color: rgb(0.45, 0.47, 0.53) });
-      drawText(page, invoice.id || "-", PAGE_W - margin, y, 12, { align: "right" });
+
+      // move the right-side meta block left for breathing room
+      const metaXLabel = PAGE_W - margin - 220;
+      const metaXValue = PAGE_W - margin;
+
+      // ID
+      drawText(page, "ID", metaXLabel, y, 12, { bold: true, color: rgb(0.45, 0.47, 0.53) });
+      drawText(page, invoice.id || "-", metaXValue, y, 10, { align: "right" });
+
       y -= 22;
-      drawText(page, "Date", PAGE_W - margin - 180, y, 12, { bold: true, color: rgb(0.45, 0.47, 0.53) });
-      drawText(page, invoice.date || "-", PAGE_W - margin, y, 12, { align: "right" });
+
+      // Date
+      drawText(page, "Date", metaXLabel, y, 12, { bold: true, color: rgb(0.45, 0.47, 0.53) });
+      drawText(page, formatDate(invoice.date), metaXValue, y, 10, { align: "right" });
+
       y -= 22;
-      drawText(page, "Invoice due", PAGE_W - margin - 180, y, 12, { bold: true, color: rgb(0.45, 0.47, 0.53) });
-      drawText(page, invoice.due_date || "-", PAGE_W - margin, y, 12, { align: "right" });
+
+      // Due date
+      drawText(page, "Invoice due", metaXLabel, y, 12, { bold: true, color: rgb(0.45, 0.47, 0.53) });
+      drawText(page, formatDate(invoice.due_date), metaXValue, y, 10, { align: "right" });
+
       y -= sectionGap;
 
       // subtle divider
-      page.drawLine({ start: { x: margin, y }, end: { x: PAGE_W - margin, y }, thickness: 0.6, color: rgb(0.93, 0.93, 0.95) });
+      page.drawLine({
+        start: { x: margin, y },
+        end: { x: PAGE_W - margin, y },
+        thickness: 0.6,
+        color: rgb(0.93, 0.93, 0.95),
+      });
+
       y -= 18;
     };
+
+    // helper to format date safely
+    function formatDate(value?: string | Date): string {
+      if (!value) return "-";
+      const d = new Date(value);
+      if (isNaN(d.getTime())) return "-";
+
+      const months = ["jan", "feb", "mar", "apr", "may", "jun", "jul", "aug", "sep", "oct", "nov", "dec"];
+      const month = months[d.getMonth()];
+      const day = String(d.getDate());
+      const year = d.getFullYear();
+
+      return `${month}-${day}-${year}`;
+    }
+
 
     // draw From/BillTo
     const drawFromBill = () => {

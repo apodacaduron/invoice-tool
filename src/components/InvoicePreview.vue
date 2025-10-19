@@ -27,35 +27,23 @@ const saveToDatabaseMutation = useMutation({
 
 async function saveAsPdf() {
   try {
-    // Optional: show a loading spinner
-    // isLoading.value = true;
-
-    // Save invoice to database first
     await saveInvoiceToDatabase();
 
     const invoice = invoiceStore.activeInvoice;
     if (!invoice?.id) throw new Error("Invoice ID missing");
 
-    // Build a safe filename: invoice-UUID-YYYY-MM-DD.pdf
-    const invoiceId = invoice.id;
-    const invoiceDate = invoice.date
-      ? new Date(invoice.date).toISOString().split("T")[0]
-      : "unknown";
-    const filename = `invoice-${invoiceId}-${invoiceDate}.pdf`;
-
-    // Get current session token for authorization
     const { data: { session }, error: sessionError } = await supabase.auth.getSession();
     if (sessionError || !session) throw new Error("Usuario no autenticado");
     const token = session.access_token;
 
-    // Call Edge Function via fetch
+    // Call your Supabase Edge Function
     const response = await fetch("https://msoloxkubjdinqyeutzb.supabase.co/functions/v1/generate-pdf", {
       method: "POST",
       headers: {
         "Content-Type": "application/json",
         "Authorization": `Bearer ${token}`,
       },
-      body: JSON.stringify({ uuid: invoiceId }),
+      body: JSON.stringify({ uuid: invoice.id }),
     });
 
     if (!response.ok) {
@@ -63,11 +51,16 @@ async function saveAsPdf() {
       throw new Error(`Edge Function error: ${errText}`);
     }
 
-    // Convert returned data to Blob
-    const arrayBuffer = await response.arrayBuffer();
-    const blob = new Blob([arrayBuffer], { type: 'application/pdf' });
+    // --- 💡 Get filename from response header ---
+    const disposition = response.headers.get("content-disposition");
+    const match = disposition?.match(/filename="(.+)"/);
+    const filename = match ? match[1] : "invoice.pdf";
 
-    // Trigger download
+    // --- Convert returned data to Blob ---
+    const arrayBuffer = await response.arrayBuffer();
+    const blob = new Blob([arrayBuffer], { type: "application/pdf" });
+
+    // --- Trigger download ---
     const url = URL.createObjectURL(blob);
     const link = document.createElement("a");
     link.href = url;
@@ -75,18 +68,12 @@ async function saveAsPdf() {
     link.click();
     URL.revokeObjectURL(url);
 
-    // Optional: hide loading spinner
-    // isLoading.value = false;
-
     authStore.isSignInDialogVisible = false;
 
   } catch (err) {
     console.error("Error saving PDF:", err);
-    // Optional: show toast to user
-    // showToast(err.message || "Failed to save PDF");
   }
 }
-
 
 function handleDownloadInvoice() {
   if (!invoiceStore.activeInvoice) return;
