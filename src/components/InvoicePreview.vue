@@ -48,20 +48,31 @@ async function saveAsPdf() {
       : "unknown";
     const filename = `invoice-${invoiceId}-${invoiceDate}.pdf`;
 
-    // Call Supabase Edge Function
-    const { data, error } = await supabase.functions.invoke('generate-pdf', {
-      body: { uuid: invoiceId },
+    // Get current session token for authorization
+    const { data: { session }, error: sessionError } = await supabase.auth.getSession();
+    if (sessionError || !session) throw new Error("Usuario no autenticado");
+    const token = session.access_token;
+
+    // Call Edge Function via fetch
+    const response = await fetch("https://msoloxkubjdinqyeutzb.supabase.co/functions/v1/generate-pdf", {
+      method: "POST",
+      headers: {
+        "Content-Type": "application/json",
+        "Authorization": `Bearer ${token}`,
+      },
+      body: JSON.stringify({ uuid: invoiceId }),
     });
 
-    if (error) throw error;
-    if (!data) throw new Error("No PDF data returned");
+    if (!response.ok) {
+      const errText = await response.text();
+      throw new Error(`Edge Function error: ${errText}`);
+    }
 
     // Convert returned data to Blob
-    // Edge Function must return ArrayBuffer for PDF bytes
-    const arrayBuffer = data as ArrayBuffer;
+    const arrayBuffer = await response.arrayBuffer();
     const blob = new Blob([arrayBuffer], { type: 'application/pdf' });
 
-    // Download
+    // Trigger download
     const url = URL.createObjectURL(blob);
     const link = document.createElement("a");
     link.href = url;
@@ -80,6 +91,7 @@ async function saveAsPdf() {
     // showToast(err.message || "Failed to save PDF");
   }
 }
+
 
 function handleDownloadInvoice() {
   if (!invoiceStore.activeInvoice) return;
