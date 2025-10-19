@@ -3,7 +3,6 @@ import { serializeInvoice, useInvoiceStore } from "@/stores/invoice";
 import Button from "primevue/button";
 import DataTable from "primevue/datatable";
 import Column from "primevue/column";
-import { ref } from "vue";
 import { useMutation, useQueryClient } from "@tanstack/vue-query";
 import { formatNumberToCurrency } from "@/utils/formatNumber";
 import router from "@/config/router";
@@ -18,8 +17,6 @@ type Props = {
 defineProps<Props>();
 defineEmits(["backToForm"]);
 
-const invoicePageRef = ref<HTMLElement | null>(null);
-
 const authStore = useAuthStore();
 const invoiceStore = useInvoiceStore();
 const queryClient = useQueryClient();
@@ -29,8 +26,6 @@ const saveToDatabaseMutation = useMutation({
 });
 
 async function saveAsPdf() {
-  if (!invoicePageRef.value) return;
-
   try {
     // Optional: show a loading spinner
     // isLoading.value = true;
@@ -160,7 +155,7 @@ async function saveInvoiceToDatabase() {
       </div>
     </div>
     <div class="page">
-      <div ref="invoicePageRef" class="grid grid-cols-2 gap-4">
+      <div class="grid grid-cols-2 gap-4">
         <div
           :class="[
             'h-fit sm:col-span-1',
