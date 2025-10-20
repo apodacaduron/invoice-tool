@@ -75,6 +75,51 @@ function confirmDelete(invoice?: Invoice | null) {
     },
   });
 }
+
+async function saveAsPdf(uuid: string) {
+  try {
+    const { data: { session }, error: sessionError } = await supabase.auth.getSession();
+    if (sessionError || !session) throw new Error("Usuario no autenticado");
+    const token = session.access_token;
+
+    // Call your Supabase Edge Function
+    const response = await fetch("https://msoloxkubjdinqyeutzb.supabase.co/functions/v1/generate-pdf", {
+      method: "POST",
+      headers: {
+        "Content-Type": "application/json",
+        "Authorization": `Bearer ${token}`,
+      },
+      body: JSON.stringify({ uuid }),
+    });
+
+    if (!response.ok) {
+      const errText = await response.text();
+      throw new Error(`Edge Function error: ${errText}`);
+    }
+
+    // --- 💡 Get filename from response header ---
+    const disposition = response.headers.get("content-disposition");
+    const match = disposition?.match(/filename="(.+)"/);
+    const filename = match ? match[1] : "invoice.pdf";
+
+    // --- Convert returned data to Blob ---
+    const arrayBuffer = await response.arrayBuffer();
+    const blob = new Blob([arrayBuffer], { type: "application/pdf" });
+
+    // --- Trigger download ---
+    const url = URL.createObjectURL(blob);
+    const link = document.createElement("a");
+    link.href = url;
+    link.download = filename;
+    link.click();
+    URL.revokeObjectURL(url);
+
+    authStore.isSignInDialogVisible = false;
+
+  } catch (err) {
+    console.error("Error saving PDF:", err);
+  }
+}
 </script>
 
 <template>
@@ -185,6 +230,13 @@ function confirmDelete(invoice?: Invoice | null) {
               <span class="font-medium">Open</span>
             </li>
           </router-link>
+          <li
+            class="flex items-center gap-2 px-2 py-3 hover:bg-emphasis cursor-pointer rounded-border"
+            @click="saveAsPdf(selectedInvoice?.id || '')"
+          >
+            <i class="pi pi-download mr-2" />
+            <span class="font-medium">Download</span>
+          </li>
           <li
             class="flex items-center gap-2 px-2 py-3 hover:bg-emphasis cursor-pointer rounded-border text-red-500"
             @click="confirmDelete(selectedInvoice)"
