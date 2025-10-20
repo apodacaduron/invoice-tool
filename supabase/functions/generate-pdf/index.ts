@@ -142,7 +142,8 @@ serve(async (req) => {
       drawText(page, "INVOICE", margin, y, 36, { bold: true });
 
       // move the right-side meta block left for breathing room
-      const metaXLabel = PAGE_W - margin - 220;
+      const halfWidth = usableWidth / 2;
+      const metaXLabel = margin + halfWidth;
       const metaXValue = PAGE_W - margin;
 
       // ID
@@ -177,15 +178,14 @@ serve(async (req) => {
     // helper to format date safely
     function formatDate(value?: string | Date): string {
       if (!value) return "-";
+
       const d = new Date(value);
       if (isNaN(d.getTime())) return "-";
 
-      const months = ["jan", "feb", "mar", "apr", "may", "jun", "jul", "aug", "sep", "oct", "nov", "dec"];
-      const month = months[d.getMonth()];
-      const day = String(d.getDate());
-      const year = d.getFullYear();
-
-      return `${month}-${day}-${year}`;
+      // options: short month name, day with leading zero, full year
+      const options: Intl.DateTimeFormatOptions = { year: "numeric", month: "short", day: "2-digit" };
+      // e.g., "Oct 19, 2025"
+      return d.toLocaleDateString("en-US", options);
     }
 
 
@@ -362,13 +362,15 @@ serve(async (req) => {
       p.drawText(txt, { x: PAGE_W / 2 - 30, y: marginBottom - 28, size: 10, font: font, color: rgb(0.45, 0.47, 0.53) });
     });
 
+    const filename = `invoice-${formatDate(invoice.date).replace(/, /g, "-").replace(/ /g, "-")}.pdf`;
+
     const pdfBytes = await pdfDoc.save();
     return new Response(pdfBytes, {
       status: 200,
       headers: {
         ...corsHeaders,
         "Content-Type": "application/pdf",
-        "Content-Disposition": `attachment; filename=invoice.pdf`,
+        "Content-Disposition": `attachment; filename="${filename}"`,
       },
     });
   } catch (err) {

@@ -100,6 +100,19 @@ async function saveInvoiceToDatabase() {
     await router.push(`/invoice/${savedInvoice.id}`);
   }
 }
+
+// helper to format date safely
+function formatDate(value?: string | Date | null): string {
+  if (!value) return "-";
+
+  const d = new Date(value);
+  if (isNaN(d.getTime())) return "-";
+
+  // options: short month name, day with leading zero, full year
+  const options: Intl.DateTimeFormatOptions = { year: "numeric", month: "short", day: "2-digit" };
+  // e.g., "Oct 19, 2025"
+  return d.toLocaleDateString("en-US", options);
+}
 </script>
 
 <template>
@@ -170,7 +183,7 @@ async function saveInvoiceToDatabase() {
               Date
             </div>
             <div class="text-xs">
-              {{ invoiceStore.activeInvoice?.date?.toDateString() || "-" }}
+              {{ formatDate(invoiceStore.activeInvoice?.date) }}
             </div>
           </div>
           <div class="flex justify-between items-center">
@@ -178,7 +191,7 @@ async function saveInvoiceToDatabase() {
               Invoice due
             </div>
             <div class="text-xs">
-              {{ invoiceStore.activeInvoice?.due_date?.toDateString() || "-" }}
+              {{ formatDate(invoiceStore.activeInvoice?.due_date) }}
             </div>
           </div>
         </div>
