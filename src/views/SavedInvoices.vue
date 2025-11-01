@@ -2,12 +2,16 @@
 import { supabase } from "@/config/supabase";
 import { deserializeInvoice, Invoice, useAuthStore } from "@/stores";
 import { formatNumberToCurrency } from "@/utils/formatNumber";
-import { useMutation, useQuery, useQueryClient } from "@tanstack/vue-query";
+import {
+  useMutation,
+  useInfiniteQuery,
+  useQueryClient,
+} from "@tanstack/vue-query";
 import Button from "primevue/button";
 import Popover from "primevue/popover";
 import { useConfirm } from "primevue/useconfirm";
 import { useToast } from "primevue/usetoast";
-import { nextTick, ref, toRef } from "vue";
+import { nextTick, ref, toRef, onMounted, onUnmounted } from "vue";
 
 const actionsPopoverRef = ref<{
   show: (e: MouseEvent) => void;
@@ -19,6 +23,8 @@ const authStore = useAuthStore();
 const queryClient = useQueryClient();
 const confirm = useConfirm();
 const toast = useToast();
+
+// --- Delete invoice mutation ---
 const deleteInvoiceQuery = useMutation({
   async mutationFn(invoiceId?: string) {
     if (!invoiceId)
@@ -27,20 +33,56 @@ const deleteInvoiceQuery = useMutation({
     await queryClient.invalidateQueries({ queryKey: ["invoices"] });
   },
 });
-const invoicesQuery = useQuery({
+
+// --- Infinite query setup ---
+const PAGE_SIZE = 12;
+
+const invoicesQuery = useInfiniteQuery({
   queryKey: ["invoices"],
-  async queryFn() {
-    const serializedInvoices = await supabase
+  queryFn: async ({ pageParam = 0 }) => {
+    const { data, error } = await supabase
       .from("invoices")
       .select()
-      .order("date", { ascending: false });
-    const deserializedInvoices =
-      serializedInvoices.data?.map(deserializeInvoice);
-    return deserializedInvoices;
+      .order("date", { ascending: false })
+      .range(pageParam * PAGE_SIZE, (pageParam + 1) * PAGE_SIZE - 1);
+
+    if (error) throw error;
+    return data?.map(deserializeInvoice);
+  },
+  initialPageParam: 0,
+  getNextPageParam: (lastPage, allPages) => {
+    if (!lastPage || lastPage.length < PAGE_SIZE) return undefined;
+    return allPages.length; // next page index
   },
   enabled: toRef(() => authStore.isLoggedIn),
 });
 
+// --- Infinite scroll observer ---
+const loadMoreRef = ref<HTMLElement | null>(null);
+
+onMounted(() => {
+  const observer = new IntersectionObserver(
+    (entries) => {
+      const entry = entries[0];
+      if (
+        entry.isIntersecting &&
+        invoicesQuery.hasNextPage.value &&
+        !invoicesQuery.isFetchingNextPage.value
+      ) {
+        invoicesQuery.fetchNextPage();
+      }
+    },
+    { threshold: 1 }
+  );
+
+  if (loadMoreRef.value) observer.observe(loadMoreRef.value);
+
+  onUnmounted(() => {
+    if (loadMoreRef.value) observer.unobserve(loadMoreRef.value);
+  });
+});
+
+// --- Popover + Actions ---
 function openActionsPopover(event: MouseEvent, invoice: Invoice) {
   selectedInvoice.value = invoice;
   nextTick(() => {
@@ -76,46 +118,46 @@ function confirmDelete(invoice?: Invoice | null) {
   });
 }
 
+// --- Download PDF ---
 async function saveAsPdf(uuid: string) {
   try {
-    const { data: { session }, error: sessionError } = await supabase.auth.getSession();
+    const {
+      data: { session },
+      error: sessionError,
+    } = await supabase.auth.getSession();
     if (sessionError || !session) throw new Error("Usuario no autenticado");
     const token = session.access_token;
 
-    // Call your Supabase Edge Function
-    const response = await fetch("https://msoloxkubjdinqyeutzb.supabase.co/functions/v1/generate-pdf", {
-      method: "POST",
-      headers: {
-        "Content-Type": "application/json",
-        "Authorization": `Bearer ${token}`,
-      },
-      body: JSON.stringify({ uuid }),
-    });
+    const response = await fetch(
+      "https://msoloxkubjdinqyeutzb.supabase.co/functions/v1/generate-pdf",
+      {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+          Authorization: `Bearer ${token}`,
+        },
+        body: JSON.stringify({ uuid }),
+      }
+    );
 
     if (!response.ok) {
       const errText = await response.text();
       throw new Error(`Edge Function error: ${errText}`);
     }
 
-    // --- 💡 Get filename from response header ---
     const disposition = response.headers.get("content-disposition");
     const match = disposition?.match(/filename="(.+)"/);
     const filename = match ? match[1] : "invoice.pdf";
 
-    // --- Convert returned data to Blob ---
     const arrayBuffer = await response.arrayBuffer();
     const blob = new Blob([arrayBuffer], { type: "application/pdf" });
 
-    // --- Trigger download ---
     const url = URL.createObjectURL(blob);
     const link = document.createElement("a");
     link.href = url;
     link.download = filename;
     link.click();
     URL.revokeObjectURL(url);
-
-    authStore.isSignInDialogVisible = false;
-
   } catch (err) {
     console.error("Error saving PDF:", err);
   }
@@ -135,7 +177,7 @@ async function saveAsPdf(uuid: string) {
     <!-- Cards Section -->
     <div class="grid gap-4 mt-6 sm:grid-cols-1 md:grid-cols-2 lg:grid-cols-3">
       <div
-        v-for="invoice in invoicesQuery.data.value"
+        v-for="invoice in invoicesQuery.data.value?.pages.flat()"
         :key="invoice.id"
         class="bg-white dark:bg-neutral-800 shadow-md p-4 rounded-lg border dark:border-neutral-700 hover:shadow-lg transition"
       >
@@ -171,18 +213,14 @@ async function saveAsPdf(uuid: string) {
           </div>
 
           <div class="flex flex-col gap-2">
-            <!-- Seller -->
             <div class="flex gap-2">
-              <!-- <i class="pi pi-user text-gray-600"></i> -->
               <span class="font-medium">Seller:</span>
               <span class="text-gray-800 dark:text-neutral-400">{{
                 invoice.seller_info
               }}</span>
             </div>
 
-            <!-- Buyer -->
             <div class="flex gap-2">
-              <!-- <i class="pi pi-user-edit text-gray-600"></i> -->
               <span class="font-medium">Buyer:</span>
               <span class="text-gray-800 dark:text-neutral-400">{{
                 invoice.buyer_info
@@ -190,14 +228,12 @@ async function saveAsPdf(uuid: string) {
             </div>
           </div>
 
-          <!-- Items -->
           <div class="flex items-center gap-2">
             <i class="pi pi-box text-gray-600"></i>
             <span class="font-medium">Items:</span>
             {{ invoice.items?.length }}
           </div>
 
-          <!-- Total -->
           <div class="flex items-center gap-2">
             <i class="pi pi-dollar text-gray-600"></i>
             <div>
@@ -216,6 +252,14 @@ async function saveAsPdf(uuid: string) {
           </div>
         </div>
       </div>
+    </div>
+
+    <!-- Infinite scroll sentinel -->
+    <div ref="loadMoreRef" class="flex justify-center py-6 text-gray-500">
+      <span v-if="invoicesQuery.isFetchingNextPage.value">Loading more...</span>
+      <span v-else-if="!invoicesQuery.hasNextPage.value"
+        >No more invoices</span
+      >
     </div>
 
     <!-- Actions Popover -->
