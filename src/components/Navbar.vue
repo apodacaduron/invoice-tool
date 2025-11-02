@@ -30,7 +30,16 @@ const signInMutation = useMutation({
     
     <router-link class="font-semibold" to="/">🧾 Invoice Tool</router-link>
 
-    <Button :icon="`pi ${isDarkMode ? 'pi-sun' : 'pi-moon'}`" @click="toggleDarkMode()" text />
+    <div>
+      <Button
+        text
+        as="a"
+        href="https://ko-fi.com/apodacaduron"
+        target="_blank"
+        rel="noopener"
+      >❤️</Button>
+      <Button :icon="`pi ${isDarkMode ? 'pi-sun' : 'pi-moon'}`" @click="toggleDarkMode()" text />
+    </div>
   </nav>
 
   <Drawer v-model:visible="drawerVisible">
