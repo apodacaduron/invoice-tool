@@ -1,7 +1,7 @@
 <script setup lang="ts">
+import { ActiveInvoice, useActiveInvoice } from "@/composables/useActiveInvoice";
 import { useAuthStatus } from "@/composables/useAuthStatus";
 import { supabase } from "@/config/supabase";
-import { deserializeInvoice, Invoice } from "@/stores";
 import { formatNumberToCurrency } from "@/utils/formatNumber";
 import {
   useMutation,
@@ -18,8 +18,9 @@ const actionsPopoverRef = ref<{
   show: (e: MouseEvent) => void;
   hide: () => void;
 }>();
-const selectedInvoice = ref<Invoice | null>(null);
+const selectedInvoice = ref<ActiveInvoice | null>(null);
 
+const { fromDB } = useActiveInvoice();
 const { data: session } = useAuthStatus();
 const queryClient = useQueryClient();
 const confirm = useConfirm();
@@ -48,7 +49,7 @@ const invoicesQuery = useInfiniteQuery({
       .range(pageParam * PAGE_SIZE, (pageParam + 1) * PAGE_SIZE - 1);
 
     if (error) throw error;
-    return data?.map(deserializeInvoice);
+    return data?.map(fromDB);
   },
   initialPageParam: 0,
   getNextPageParam: (lastPage, allPages) => {
@@ -84,14 +85,14 @@ onMounted(() => {
 });
 
 // --- Popover + Actions ---
-function openActionsPopover(event: MouseEvent, invoice: Invoice) {
+function openActionsPopover(event: MouseEvent, invoice: ActiveInvoice) {
   selectedInvoice.value = invoice;
   nextTick(() => {
     actionsPopoverRef.value?.show(event);
   });
 }
 
-function confirmDelete(invoice?: Invoice | null) {
+function confirmDelete(invoice?: ActiveInvoice | null) {
   if (!invoice) return;
   confirm.require({
     message: `Do you want to delete this record? ${invoice?.id}`,
