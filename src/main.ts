@@ -1,16 +1,17 @@
-import { createApp } from "vue";
-import App from "./App.vue";
-import PrimeVue from "primevue/config";
-import "./index.css";
-import router from "./config/router";
-import Theme from "@/config/theme";
-import "primeicons/primeicons.css";
-import { createPinia } from "pinia";
-import { VueQueryPlugin } from "@tanstack/vue-query";
-import ToastService from "primevue/toastservice";
-import ConfirmationService from 'primevue/confirmationservice';
+import './index.css';
+import 'primeicons/primeicons.css';
 
-const pinia = createPinia();
+import PrimeVue from 'primevue/config';
+import ConfirmationService from 'primevue/confirmationservice';
+import ToastService from 'primevue/toastservice';
+import { createApp } from 'vue';
+
+import Theme from '@/config/theme';
+import { VueQueryPlugin } from '@tanstack/vue-query';
+
+import App from './App.vue';
+import router from './config/router';
+
 const app = createApp(App);
 
 app.use(PrimeVue, {
@@ -22,7 +23,6 @@ app.use(PrimeVue, {
   },
 });
 app.use(router);
-app.use(pinia);
 app.use(VueQueryPlugin);
 app.use(ToastService);
 app.use(ConfirmationService);
