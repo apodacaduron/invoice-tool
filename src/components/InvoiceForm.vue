@@ -53,10 +53,10 @@ const recentBuyersQuery = useQuery({
 });
 
 function selectRecentValue(value: string | null, field: keyof Pick<Invoice, 'buyer_info' | 'seller_info'>) {
-  if (!activeInvoice.value) return
+  if (!activeInvoice) return
   if (value === null) return
 
-  activeInvoice.value[field] = value;
+  activeInvoice[field] = value;
   closeRecentValuesDialog();
 }
 
@@ -212,8 +212,8 @@ function closeRecentValuesDialog() {
           <InputText
             id="rate"
             type="number"
-            :modelValue="String(item.quantity)"
-            @update:modelValue="item.quantity = Number($event)"
+            :modelValue="String(item.rate)"
+            @update:modelValue="item.rate = Number($event)"
             placeholder="Enter price per unit"
           />
         </div>

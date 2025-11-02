@@ -1,5 +1,5 @@
 import { nanoid } from 'nanoid';
-import { computed, ref } from 'vue';
+import { computed, reactive } from 'vue';
 
 import type { Tables } from "database.types";
 
@@ -24,16 +24,16 @@ export interface ActiveInvoice {
   user_id?: string | null;
 }
 
-export function useActiveInvoice() {
-  const activeInvoice = ref<ActiveInvoice>(getDefaultInvoice());
+let _singleton: ReturnType<typeof createActiveInvoice> | null = null;
 
-  const total = computed(
-    () =>
-      activeInvoice.value?.items.reduce(
-        (sum, item) =>
-          sum + Number(item.quantity || 0) * Number(item.rate || 0),
-        0
-      ) ?? 0
+function createActiveInvoice() {
+  const activeInvoice = reactive<ActiveInvoice>(getDefaultInvoice());
+
+  const total = computed(() =>
+    activeInvoice.items.reduce(
+      (sum, item) => sum + Number(item.quantity || 0) * Number(item.rate || 0),
+      0
+    )
   );
 
   function getDefaultInvoice(): ActiveInvoice {
@@ -50,15 +50,15 @@ export function useActiveInvoice() {
   }
 
   function resetInvoice() {
-    activeInvoice.value = getDefaultInvoice();
+    Object.assign(activeInvoice, getDefaultInvoice());
   }
 
   function setInvoice(invoice: ActiveInvoice) {
-    activeInvoice.value = invoice;
+    Object.assign(activeInvoice, invoice);
   }
 
   function addItem() {
-    activeInvoice.value?.items.push({
+    activeInvoice.items.push({
       id: nanoid(),
       description: "",
       quantity: null,
@@ -67,10 +67,7 @@ export function useActiveInvoice() {
   }
 
   function removeItem(itemId: string) {
-    if (!activeInvoice.value) return;
-    activeInvoice.value.items = activeInvoice.value.items.filter(
-      (i) => i.id !== itemId
-    );
+    activeInvoice.items = activeInvoice.items.filter((i) => i.id !== itemId);
   }
 
   function toDB(invoice: ActiveInvoice): Invoice {
@@ -79,8 +76,7 @@ export function useActiveInvoice() {
       date: invoice.date.toISOString(),
       due_date: invoice.due_date.toISOString(),
       created_at: invoice.created_at?.toISOString() ?? new Date().toISOString(),
-      id: invoice.id ?? nanoid(),
-      user_id: invoice.user_id ?? "",
+      ...(invoice?.id ? {id: invoice.id} : {}),
     } as Invoice;
   }
 
@@ -104,4 +100,11 @@ export function useActiveInvoice() {
     toDB,
     fromDB,
   };
+}
+
+export function useActiveInvoice() {
+  if (!_singleton) {
+    _singleton = createActiveInvoice();
+  }
+  return _singleton;
 }

@@ -31,7 +31,7 @@ async function saveAsPdf() {
   try {
     await saveInvoiceToDatabase();
 
-    if (!activeInvoice.value?.id) throw new Error("Invoice ID missing");
+    if (!activeInvoice?.id) throw new Error("Invoice ID missing");
 
     const { data: { session }, error: sessionError } = await supabase.auth.getSession();
     if (sessionError || !session) throw new Error("Usuario no autenticado");
@@ -44,7 +44,7 @@ async function saveAsPdf() {
         "Content-Type": "application/json",
         "Authorization": `Bearer ${token}`,
       },
-      body: JSON.stringify({ uuid: activeInvoice.value.id }),
+      body: JSON.stringify({ uuid: activeInvoice.id }),
     });
 
     if (!response.ok) {
@@ -77,7 +77,7 @@ async function saveAsPdf() {
 }
 
 function handleDownloadInvoice() {
-  if (!activeInvoice.value) return;
+  if (!activeInvoice) return;
   if (!session.value) {
     isSignInDialogVisible.value = true;
     return;
@@ -87,11 +87,11 @@ function handleDownloadInvoice() {
 }
 
 async function saveInvoiceToDatabase() {
-  if (!activeInvoice.value || !session.value) return;
+  if (!activeInvoice || !session.value) return;
 
   const { data: savedInvoice } = await supabase
     .from("invoices")
-    .upsert(toDB(activeInvoice.value))
+    .upsert(toDB(activeInvoice))
     .select()
     .single();
 
