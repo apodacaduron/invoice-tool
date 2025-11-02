@@ -82,14 +82,6 @@ const signInMutation = useMutation({
           <Button
             text
             as="a"
-            label="☕️ Buy me a coffee"
-            href="https://buymeacoffee.com/DanielApodaca"
-            target="_blank"
-            rel="noopener"
-          />
-          <Button
-            text
-            as="a"
             icon="pi pi-github"
             label="Github"
             href="https://github.com/apodacaduron/invoice-tool"
