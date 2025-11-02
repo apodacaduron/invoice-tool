@@ -1,16 +1,20 @@
 <script setup lang="ts">
 import InvoiceForm from "@/components/InvoiceForm.vue";
 import InvoicePreview from "@/components/InvoicePreview.vue";
+import { useActiveInvoice } from "@/composables/useActiveInvoice";
 import { useResizeObserver } from "@/composables/useResizeObserver";
-import { ref, toRef } from "vue";
+import { onBeforeMount, ref, toRef } from "vue";
 
 const invoiceContainerRef = ref<HTMLDivElement | null>(null);
 const isPreviewVisible = ref(false);
 
 const { elementSize: invoiceContainerDimensions } =
   useResizeObserver(invoiceContainerRef);
+const { resetInvoice } = useActiveInvoice();
 
 const isMobile = toRef(() => invoiceContainerDimensions.value.width < 1024)
+
+onBeforeMount(() => resetInvoice());
 </script>
 
 <template>
