@@ -1,10 +1,10 @@
 <script setup lang="ts">
 import InvoiceForm from "@/components/InvoiceForm.vue";
 import InvoicePreview from "@/components/InvoicePreview.vue";
+import { useActiveInvoice } from "@/composables/useActiveInvoice";
 import { useAuthStatus } from "@/composables/useAuthStatus";
 import { useResizeObserver } from "@/composables/useResizeObserver";
 import { supabase } from "@/config/supabase";
-import { deserializeInvoice, useInvoiceStore } from "@/stores/invoice";
 import { useQuery } from "@tanstack/vue-query";
 import BlockUI from "primevue/blockui";
 import ProgressSpinner from "primevue/progressspinner";
@@ -17,16 +17,15 @@ const isPreviewVisible = ref(false);
 const { data: session } = useAuthStatus();
 const route = useRoute()
 const router = useRouter()
-const invoiceStore = useInvoiceStore()
+const { fromDB, setInvoice } = useActiveInvoice();
 const { elementSize: invoiceContainerDimensions } =
   useResizeObserver(invoiceContainerRef);
 const invoiceQuery = useQuery({
   queryKey: ['invoice', route.params.invoiceId?.toString()],
   async queryFn() {
-    const serializedInvoice = await supabase.from('invoices').select().eq('id', route.params.invoiceId.toString()).single()
-    if (!serializedInvoice.data) throw new Error('Invoice not found')
-    const deserializedInvoice = deserializeInvoice(serializedInvoice.data)
-    return deserializedInvoice
+    const invoice = await supabase.from('invoices').select().eq('id', route.params.invoiceId.toString()).single()
+    if (!invoice.data) throw new Error('Invoice not found')
+    return fromDB(invoice.data)
   },
   enabled: toRef(() => Boolean(route.params.invoiceId?.toString() && session.value))
 })
@@ -38,7 +37,7 @@ watch([invoiceQuery.isSuccess, () => invoiceQuery.data.value], ([isSuccess, invo
   if (!isSuccess) return;
   if (!invoiceData) return router.push('/404');
 
-  return invoiceStore.setActiveInvoice({ ...invoiceData, items: JSON.parse(JSON.stringify(invoiceData.items)) })
+  return setInvoice({ ...invoiceData, items: JSON.parse(JSON.stringify(invoiceData.items)) })
 }, { immediate: true })
 </script>
 

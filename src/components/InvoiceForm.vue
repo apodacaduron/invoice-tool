@@ -1,13 +1,8 @@
 <script setup lang="ts">
-import { ref, toRef, watch } from "vue";
+import { ref, toRef } from "vue";
 import { useRoute } from "vue-router";
 import { useQuery } from "@tanstack/vue-query";
 import { supabase } from "@/config/supabase";
-import {
-  useInvoiceStore,
-  buildInvoiceItem,
-  Invoice,
-} from "@/stores/invoice";
 import { currencies } from "@/utils/currencies";
 
 import InputText from "primevue/inputtext";
@@ -18,6 +13,7 @@ import Dialog from "primevue/dialog";
 import Select from "primevue/select";
 import ProgressSpinner from "primevue/progressspinner";
 import { useAuthStatus } from "@/composables/useAuthStatus";
+import { Invoice, useActiveInvoice } from "@/composables/useActiveInvoice";
 
 type Props = {
   showPreviewButton: boolean;
@@ -26,10 +22,8 @@ type Props = {
 defineProps<Props>();
 defineEmits(["preview"]);
 
+const { activeInvoice, addItem } = useActiveInvoice();
 const { data: session } = useAuthStatus();
-const invoiceStore = useInvoiceStore();
-
-const invoiceForm = ref<Invoice | null>(invoiceStore.activeInvoice);
 const isRecentSellersDialogOpen = ref(false);
 const isRecentBuyersDialogOpen = ref(false);
 
@@ -58,15 +52,11 @@ const recentBuyersQuery = useQuery({
   ),
 });
 
-function addInvoiceItem() {
-  invoiceForm.value?.items.push(buildInvoiceItem());
-}
-
 function selectRecentValue(value: string | null, field: keyof Pick<Invoice, 'buyer_info' | 'seller_info'>) {
-  if (!invoiceForm.value) return
+  if (!activeInvoice.value) return
   if (value === null) return
 
-  invoiceForm.value[field] = value;
+  activeInvoice.value[field] = value;
   closeRecentValuesDialog();
 }
 
@@ -74,18 +64,10 @@ function closeRecentValuesDialog() {
   isRecentBuyersDialogOpen.value = false;
   isRecentSellersDialogOpen.value = false;
 }
-
-watch(
-  invoiceForm,
-  (updatedInvoice) => {
-    if (updatedInvoice) invoiceStore.setActiveInvoice(updatedInvoice);
-  },
-  { deep: true, immediate: true }
-);
 </script>
 
 <template>
-  <div v-if="invoiceForm" class="w-full min-w-56 max-w-md px-4 lg:px-6 py-4">
+  <div class="w-full min-w-56 max-w-md px-4 lg:px-6 py-4">
     <div class="flex justify-between items-center mb-4">
       <div class="flex items-center gap-2">
         <h2 class="text-2xl font-semibold">Details</h2>
@@ -110,7 +92,7 @@ watch(
         <DatePicker
           id="date"
           type="date"
-          v-model="invoiceForm.date"
+          v-model="activeInvoice.date"
           placeholder="Select invoice date"
         />
       </div>
@@ -120,7 +102,7 @@ watch(
         <DatePicker
           id="due_date"
           type="date"
-          v-model="invoiceForm.due_date"
+          v-model="activeInvoice.due_date"
           placeholder="Select due date"
         />
       </div>
@@ -142,7 +124,7 @@ watch(
         <Textarea
           id="seller_info"
           :autoResize="true"
-          v-model="invoiceForm.seller_info"
+          v-model="activeInvoice.seller_info"
           class="border rounded p-2"
           placeholder="Enter your company details (Name, Address, Contact)"
         ></Textarea>
@@ -165,7 +147,7 @@ watch(
         <Textarea
           id="buyer_info"
           :autoResize="true"
-          v-model="invoiceForm.buyer_info"
+          v-model="activeInvoice.buyer_info"
           class="border rounded p-2"
           placeholder="Enter client details (Name, Address, Contact)"
         ></Textarea>
@@ -176,7 +158,7 @@ watch(
         <Textarea
           id="notes"
           :autoResize="true"
-          v-model="invoiceForm.notes"
+          v-model="activeInvoice.notes"
           class="border rounded p-2"
           placeholder="Enter invoice notes"
         ></Textarea>
@@ -189,14 +171,14 @@ watch(
           id="currency"
           :options="currencies"
           filter
-          v-model="invoiceForm.currency"
+          v-model="activeInvoice.currency"
           placeholder="Select a currency"
         />
       </div>
 
       <!-- Item or Service Details -->
       <h4 class="text-xl font-semibold">Items</h4>
-      <template v-for="(item, index) in invoiceForm.items" :key="item.id">
+      <template v-for="(item, index) in activeInvoice.items" :key="item.id">
         <div class="flex flex-col gap-2 col-span-2 relative">
           <label class="text-sm" for="itemDescription">Description</label>
           <Textarea
@@ -206,8 +188,8 @@ watch(
           />
 
           <div
-            v-if="invoiceForm && invoiceForm.items.length > 1"
-            @click="invoiceForm.items.splice(index, 1)"
+            v-if="activeInvoice && activeInvoice.items.length > 1"
+            @click="activeInvoice.items.splice(index, 1)"
             class="absolute top-0 right-0"
           >
             <Button size="small" icon="pi pi-trash" severity="danger" />
@@ -217,7 +199,8 @@ watch(
         <div class="flex flex-col gap-2 col-span-1">
           <label class="text-sm" for="quantity">Hours</label>
           <InputText
-            v-model="item.quantity"
+            :modelValue="String(item.quantity)"
+            @update:modelValue="item.quantity = Number($event)"
             id="quantity"
             type="number"
             placeholder="Enter hours"
@@ -229,7 +212,8 @@ watch(
           <InputText
             id="rate"
             type="number"
-            v-model="item.rate"
+            :modelValue="String(item.quantity)"
+            @update:modelValue="item.quantity = Number($event)"
             placeholder="Enter price per unit"
           />
         </div>
@@ -237,16 +221,16 @@ watch(
         <hr
           class="col-span-2"
           v-if="
-            invoiceForm &&
-            invoiceForm.items.length > 1 &&
-            index < invoiceForm.items.length - 1
+            activeInvoice &&
+            activeInvoice.items.length > 1 &&
+            index < activeInvoice.items.length - 1
           "
         />
       </template>
 
       <div class="flex flex-col gap-2 col-span-2 mt-2">
         <Button
-          @click="addInvoiceItem"
+          @click="addItem()"
           label="Add item"
           severity="secondary"
           icon="pi pi-plus"

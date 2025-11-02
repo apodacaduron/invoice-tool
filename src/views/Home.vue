@@ -2,21 +2,15 @@
 import InvoiceForm from "@/components/InvoiceForm.vue";
 import InvoicePreview from "@/components/InvoicePreview.vue";
 import { useResizeObserver } from "@/composables/useResizeObserver";
-import { useInvoiceStore } from "@/stores/invoice";
-import { onBeforeMount, ref, toRef } from "vue";
+import { ref, toRef } from "vue";
 
 const invoiceContainerRef = ref<HTMLDivElement | null>(null);
 const isPreviewVisible = ref(false);
 
 const { elementSize: invoiceContainerDimensions } =
   useResizeObserver(invoiceContainerRef);
-const invoiceStore = useInvoiceStore()
 
 const isMobile = toRef(() => invoiceContainerDimensions.value.width < 1024)
-
-onBeforeMount(() => {
-  invoiceStore.hardResetActiveInvoice()
-})
 </script>
 
 <template>

@@ -1,5 +1,4 @@
 <script setup lang="ts">
-import { serializeInvoice, useInvoiceStore } from "@/stores/invoice";
 import Button from "primevue/button";
 import DataTable from "primevue/datatable";
 import Column from "primevue/column";
@@ -10,6 +9,7 @@ import { supabase } from "@/config/supabase";
 import SignInDialog from "./SignInDialog.vue";
 import { ref } from "vue";
 import { useAuthStatus } from "@/composables/useAuthStatus";
+import { useActiveInvoice } from "@/composables/useActiveInvoice";
 
 type Props = {
   showBackButton: boolean;
@@ -20,7 +20,7 @@ defineEmits(["backToForm"]);
 
 const { data: session } = useAuthStatus();
 const isSignInDialogVisible = ref(false);
-const invoiceStore = useInvoiceStore();
+const { activeInvoice, setInvoice, toDB, fromDB, total } = useActiveInvoice();
 const queryClient = useQueryClient();
 const pdfMutation = useMutation({ mutationFn: saveAsPdf });
 const saveToDatabaseMutation = useMutation({
@@ -31,8 +31,7 @@ async function saveAsPdf() {
   try {
     await saveInvoiceToDatabase();
 
-    const invoice = invoiceStore.activeInvoice;
-    if (!invoice?.id) throw new Error("Invoice ID missing");
+    if (!activeInvoice.value?.id) throw new Error("Invoice ID missing");
 
     const { data: { session }, error: sessionError } = await supabase.auth.getSession();
     if (sessionError || !session) throw new Error("Usuario no autenticado");
@@ -45,7 +44,7 @@ async function saveAsPdf() {
         "Content-Type": "application/json",
         "Authorization": `Bearer ${token}`,
       },
-      body: JSON.stringify({ uuid: invoice.id }),
+      body: JSON.stringify({ uuid: activeInvoice.value.id }),
     });
 
     if (!response.ok) {
@@ -78,7 +77,7 @@ async function saveAsPdf() {
 }
 
 function handleDownloadInvoice() {
-  if (!invoiceStore.activeInvoice) return;
+  if (!activeInvoice.value) return;
   if (!session.value) {
     isSignInDialogVisible.value = true;
     return;
@@ -88,16 +87,16 @@ function handleDownloadInvoice() {
 }
 
 async function saveInvoiceToDatabase() {
-  if (!invoiceStore.activeInvoice || !session.value) return;
+  if (!activeInvoice.value || !session.value) return;
 
   const { data: savedInvoice } = await supabase
     .from("invoices")
-    .upsert(serializeInvoice(invoiceStore.activeInvoice))
+    .upsert(toDB(activeInvoice.value))
     .select()
     .single();
 
   if (savedInvoice) {
-    invoiceStore.setActiveInvoiceId(savedInvoice.id);
+    setInvoice(fromDB(savedInvoice));
     await queryClient.invalidateQueries({ queryKey: ["invoices"] });
     await router.push(`/invoice/${savedInvoice.id}`);
   }
@@ -177,7 +176,7 @@ function formatDate(value?: string | Date | null): string {
               ID
             </div>
             <div class="text-xs">
-              {{ invoiceStore.activeInvoice?.id || "-" }}
+              {{ activeInvoice?.id || "-" }}
             </div>
           </div>
           <div class="flex justify-between items-center">
@@ -185,7 +184,7 @@ function formatDate(value?: string | Date | null): string {
               Date
             </div>
             <div class="text-xs">
-              {{ formatDate(invoiceStore.activeInvoice?.date) }}
+              {{ formatDate(activeInvoice?.date) }}
             </div>
           </div>
           <div class="flex justify-between items-center">
@@ -193,7 +192,7 @@ function formatDate(value?: string | Date | null): string {
               Invoice due
             </div>
             <div class="text-xs">
-              {{ formatDate(invoiceStore.activeInvoice?.due_date) }}
+              {{ formatDate(activeInvoice?.due_date) }}
             </div>
           </div>
         </div>
@@ -207,7 +206,7 @@ function formatDate(value?: string | Date | null): string {
             From
           </div>
           <div class="text-sm">
-            {{ invoiceStore.activeInvoice?.seller_info || "-" }}
+            {{ activeInvoice?.seller_info || "-" }}
           </div>
         </div>
         <div
@@ -220,11 +219,11 @@ function formatDate(value?: string | Date | null): string {
             Bill to
           </div>
           <div class="text-sm">
-            {{ invoiceStore.activeInvoice?.buyer_info || "-" }}
+            {{ activeInvoice?.buyer_info || "-" }}
           </div>
         </div>
         <div class="h-fit col-span-2 text-sm whitespace-pre-wrap">
-          <DataTable :value="invoiceStore.activeInvoice?.items">
+          <DataTable :value="activeInvoice?.items">
             <Column field="description" header="Description" class="!w-full">
               <template #body="slotProps">
                 {{ slotProps.data.description || "-" }}
@@ -267,19 +266,19 @@ function formatDate(value?: string | Date | null): string {
             <div class="text-gray-500 text-sm">Total</div>
             <div>
               {{
-                formatNumberToCurrency(invoiceStore.activeInvoiceTotal) || "-"
+                formatNumberToCurrency(total) || "-"
               }}
-              {{ invoiceStore.activeInvoice?.currency || "USD" }}
+              {{ activeInvoice?.currency || "USD" }}
             </div>
           </div>
         </div>
         <div
-          v-if="invoiceStore.activeInvoice?.notes"
+          v-if="activeInvoice?.notes"
           class="h-fit col-span-2 text-sm whitespace-pre-wrap"
         >
           Notes:
           <p>
-            {{ invoiceStore.activeInvoice?.notes }}
+            {{ activeInvoice?.notes }}
           </p>
         </div>
       </div>
