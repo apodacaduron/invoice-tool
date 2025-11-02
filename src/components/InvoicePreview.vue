@@ -6,8 +6,6 @@ import { useMutation, useQueryClient } from "@tanstack/vue-query";
 import { formatNumberToCurrency } from "@/utils/formatNumber";
 import router from "@/config/router";
 import { supabase } from "@/config/supabase";
-import SignInDialog from "./SignInDialog.vue";
-import { ref } from "vue";
 import { useAuthStatus } from "@/composables/useAuthStatus";
 import { useActiveInvoice } from "@/composables/useActiveInvoice";
 
@@ -19,7 +17,6 @@ defineProps<Props>();
 defineEmits(["backToForm"]);
 
 const { data: session } = useAuthStatus();
-const isSignInDialogVisible = ref(false);
 const { activeInvoice, setInvoice, toDB, fromDB, total } = useActiveInvoice();
 const queryClient = useQueryClient();
 const pdfMutation = useMutation({ mutationFn: saveAsPdf });
@@ -68,9 +65,6 @@ async function saveAsPdf() {
     link.download = filename;
     link.click();
     URL.revokeObjectURL(url);
-
-    isSignInDialogVisible.value = false;
-
   } catch (err) {
     console.error("Error saving PDF:", err);
   }
@@ -79,7 +73,6 @@ async function saveAsPdf() {
 function handleDownloadInvoice() {
   if (!activeInvoice) return;
   if (!session.value) {
-    isSignInDialogVisible.value = true;
     return;
   }
 
@@ -283,8 +276,6 @@ function formatDate(value?: string | Date | null): string {
         </div>
       </div>
     </div>
-
-    <SignInDialog v-model:visible="isSignInDialogVisible"></SignInDialog>
   </div>
 </template>
 
