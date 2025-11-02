@@ -75,7 +75,7 @@ const signInMutation = useMutation({
             text
             as="a"
             label="❤️ Support me"
-            href="https://liberapay.com/apodacaduron/donate"
+            href="https://ko-fi.com/apodacaduron"
             target="_blank"
             rel="noopener"
           />
