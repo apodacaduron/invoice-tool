@@ -74,6 +74,14 @@ const signInMutation = useMutation({
           <Button
             text
             as="a"
+            label="🐛 Found a bug or something not working? "
+            href="https://forms.gle/2VGAbCKVAbAL7C6b9"
+            target="_blank"
+            rel="noopener"
+          />
+          <Button
+            text
+            as="a"
             label="❤️ Support me"
             href="https://ko-fi.com/apodacaduron"
             target="_blank"
