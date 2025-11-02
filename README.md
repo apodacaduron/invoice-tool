@@ -1,33 +1,42 @@
-# Invoice Tool
+# 🧾 Invoice Tool
 
-**Invoice Tool** is a lightweight invoice generator that allows you to create, preview, and download invoices as PDFs. Designed for freelancers, small businesses, or anyone needing a straightforward solution for generating and managing invoices.
+A simple and free invoicing app for freelancers and contractors.  
+Create, save, and download professional invoices in seconds — no limits, no subscriptions.
 
-## 🌐 DEMO
+👉 **Live demo:** [https://invoicetool.netlify.app](https://invoicetool.netlify.app)
 
-The app is live at [invoicetool.netlify.app](https://invoicetool.netlify.app/).
+---
 
-## 🚀 Features
-- **Secure Cloud Storage**: Invoices are securely stored in the cloud via Supabase, allowing you to access them from any device.
-- **User Authentication**: Log in to save, manage, and access your invoices across devices.
-- **PDF Export**: Generate and download invoices in PDF format.
-- **Open Source**: Fully open-source, allowing for customization and contributions.
+## ✨ Features
+- 🔐 **Sign in with Google** — no setup required  
+- 🧠 **Create invoices quickly** using a clean, simple form  
+- 💾 **Automatic history** of your previous invoices  
+- 📄 **Download as PDF** with one click  
+- 💸 **Completely free**, built with Supabase + Netlify  
 
-## 🔐 Data Privacy
+---
 
-- **Supabase-Backed Security**: Your data is stored securely in Supabase, protected with authentication and encryption to keep your information safe and accessible only to you.
+## 💡 Why I built it
+I made Invoice Tool after getting frustrated with invoicing services that limited free users to just a few invoices.  
+All I needed as a freelance developer was a simple way to send weekly invoices to clients in the US and Portugal — without paying for features I didn’t need.  
+So I built this tool for myself, and now I’m sharing it for anyone who wants something lightweight that just works.
 
-## 📅 Future Features
+---
 
-We are considering adding the following features in future releases:
-- **Enhanced Invoice Management**: Options for archiving and organizing invoices.
-- **Additional Cloud Integrations**: Support for other storage providers to give users more flexibility.
+## 🧰 Tech Stack
+- [Vue 3](https://vuejs.org/)  
+- [Supabase](https://supabase.com/)  
+- [Netlify](https://www.netlify.com/)  
 
-## 📥 Installation
+---
 
-To run this project locally:
+## ☕ Support
+Invoice Tool is completely free and open for anyone to use.  
+If it saves you time or helps you get paid faster, you can support my work here:
 
-```bash
-git clone https://github.com/apodacaduron/invoice-tool.git
-cd invoice-tool
-npm install
-npm run dev
+[![Support me on Ko-fi](https://ko-fi.com/img/githubbutton_sm.svg)](https://ko-fi.com/apodacaduron)
+
+---
+
+## 📄 License
+MIT License © 2025 [Daniel Gustavo Apodaca Durón](https://github.com/apodacaduron)
