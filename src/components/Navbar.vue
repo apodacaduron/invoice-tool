@@ -2,16 +2,16 @@
 import { ref } from "vue";
 import Drawer from "primevue/drawer";
 import Button from "primevue/button";
-import { useAuthStore } from "@/stores";
 import { useMutation } from "@tanstack/vue-query";
 import { supabase } from "@/config/supabase";
 import { useDark, useToggle } from "@vueuse/core";
+import { useAuthStatus } from "@/composables/useAuthStatus";
 
 const drawerVisible = ref(false);
 
+const { data: session } = useAuthStatus();
 const isDarkMode = useDark();
 const toggleDarkMode = useToggle(isDarkMode);
-const authStore = useAuthStore();
 const signInMutation = useMutation({
   async mutationFn() {
     const { data, error } = await supabase.auth.signInWithOAuth({
@@ -22,6 +22,11 @@ const signInMutation = useMutation({
     return data;
   },
 });
+
+async function signOut() {
+  await supabase.auth.signOut({ scope: 'local' });
+  window.location.href = '/';
+}
 </script>
 
 <template>
@@ -106,9 +111,9 @@ const signInMutation = useMutation({
             rel="noopener"
           />
 
-          <div v-if="authStore.isLoggedIn">
+          <div v-if="session">
             <Button
-              @click="authStore.signOut"
+              @click="signOut()"
               fluid
               icon="pi pi-sign-out"
               label="Sign out"
@@ -117,7 +122,7 @@ const signInMutation = useMutation({
           </div>
           <div v-else>
             <Button
-              @click="signInMutation.mutate"
+              @click="signInMutation.mutate()"
               fluid
               icon="pi pi-google"
               label="Sign in with Google"

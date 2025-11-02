@@ -1,6 +1,7 @@
 <script setup lang="ts">
+import { useAuthStatus } from "@/composables/useAuthStatus";
 import { supabase } from "@/config/supabase";
-import { deserializeInvoice, Invoice, useAuthStore } from "@/stores";
+import { deserializeInvoice, Invoice } from "@/stores";
 import { formatNumberToCurrency } from "@/utils/formatNumber";
 import {
   useMutation,
@@ -19,7 +20,7 @@ const actionsPopoverRef = ref<{
 }>();
 const selectedInvoice = ref<Invoice | null>(null);
 
-const authStore = useAuthStore();
+const { data: session } = useAuthStatus();
 const queryClient = useQueryClient();
 const confirm = useConfirm();
 const toast = useToast();
@@ -54,7 +55,7 @@ const invoicesQuery = useInfiniteQuery({
     if (!lastPage || lastPage.length < PAGE_SIZE) return undefined;
     return allPages.length; // next page index
   },
-  enabled: toRef(() => authStore.isLoggedIn),
+  enabled: toRef(() => Boolean(session.value)),
 });
 
 // --- Infinite scroll observer ---

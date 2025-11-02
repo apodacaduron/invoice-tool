@@ -1,9 +1,9 @@
 <script setup lang="ts">
 import InvoiceForm from "@/components/InvoiceForm.vue";
 import InvoicePreview from "@/components/InvoicePreview.vue";
+import { useAuthStatus } from "@/composables/useAuthStatus";
 import { useResizeObserver } from "@/composables/useResizeObserver";
 import { supabase } from "@/config/supabase";
-import { useAuthStore } from "@/stores";
 import { deserializeInvoice, useInvoiceStore } from "@/stores/invoice";
 import { useQuery } from "@tanstack/vue-query";
 import BlockUI from "primevue/blockui";
@@ -14,9 +14,9 @@ import { useRoute, useRouter } from "vue-router";
 const invoiceContainerRef = ref<HTMLDivElement | null>(null);
 const isPreviewVisible = ref(false);
 
+const { data: session } = useAuthStatus();
 const route = useRoute()
 const router = useRouter()
-const authStore = useAuthStore()
 const invoiceStore = useInvoiceStore()
 const { elementSize: invoiceContainerDimensions } =
   useResizeObserver(invoiceContainerRef);
@@ -28,7 +28,7 @@ const invoiceQuery = useQuery({
     const deserializedInvoice = deserializeInvoice(serializedInvoice.data)
     return deserializedInvoice
   },
-  enabled: toRef(() => Boolean(route.params.invoiceId?.toString()) && authStore.isLoggedIn)
+  enabled: toRef(() => Boolean(route.params.invoiceId?.toString() && session.value))
 })
 
 const isMobile = toRef(() => invoiceContainerDimensions.value.width < 1024)

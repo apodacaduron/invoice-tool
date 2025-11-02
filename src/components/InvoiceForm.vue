@@ -2,7 +2,6 @@
 import { ref, toRef, watch } from "vue";
 import { useRoute } from "vue-router";
 import { useQuery } from "@tanstack/vue-query";
-import { useAuthStore } from "@/stores";
 import { supabase } from "@/config/supabase";
 import {
   useInvoiceStore,
@@ -18,6 +17,7 @@ import DatePicker from "primevue/datepicker";
 import Dialog from "primevue/dialog";
 import Select from "primevue/select";
 import ProgressSpinner from "primevue/progressspinner";
+import { useAuthStatus } from "@/composables/useAuthStatus";
 
 type Props = {
   showPreviewButton: boolean;
@@ -26,7 +26,7 @@ type Props = {
 defineProps<Props>();
 defineEmits(["preview"]);
 
-const authStore = useAuthStore();
+const { data: session } = useAuthStatus();
 const invoiceStore = useInvoiceStore();
 
 const invoiceForm = ref<Invoice | null>(invoiceStore.activeInvoice);
@@ -43,7 +43,7 @@ const recentSellersQuery = useQuery({
       .order("created_at", { ascending: false })
       .limit(10),
   enabled: toRef(
-    () => isRecentSellersDialogOpen.value && authStore.isLoggedIn
+    () => isRecentSellersDialogOpen.value && Boolean(session.value)
   ),
 });
 const recentBuyersQuery = useQuery({
@@ -54,7 +54,7 @@ const recentBuyersQuery = useQuery({
       .order("created_at", { ascending: false })
       .limit(10),
   enabled: toRef(
-    () => isRecentBuyersDialogOpen.value && authStore.isLoggedIn
+    () => isRecentBuyersDialogOpen.value && Boolean(session.value)
   ),
 });
 
@@ -136,7 +136,7 @@ watch(
             label="Recent values"
             icon="pi pi-history"
             class="!py-0"
-            v-if="authStore.isLoggedIn"
+            v-if="session"
           />
         </div>
         <Textarea
@@ -159,7 +159,7 @@ watch(
             label="Recent values"
             icon="pi pi-history"
             class="!py-0"
-            v-if="authStore.isLoggedIn"
+            v-if="session"
           />
         </div>
         <Textarea
@@ -173,18 +173,6 @@ watch(
 
       <!-- Notes -->
       <div class="flex flex-col gap-2 col-span-2">
-        <!-- <div class="flex justify-between items-end">
-          <label class="text-sm" for="notes">Notes</label>
-          <Button
-            @click="openRecentValues('notes')"
-            small
-            text
-            label="Recent values"
-            icon="pi pi-history"
-            class="!py-0"
-            v-if="authStore.isLoggedIn"
-          />
-        </div> -->
         <Textarea
           id="notes"
           :autoResize="true"

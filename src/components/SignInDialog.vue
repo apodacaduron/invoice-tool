@@ -1,6 +1,6 @@
 <script setup lang="ts">
+import { useAuthStatus } from '@/composables/useAuthStatus';
 import { supabase } from '@/config/supabase';
-import { useAuthStore } from '@/stores';
 import { useMutation } from '@tanstack/vue-query';
 import Button from 'primevue/button';
 import Dialog from 'primevue/dialog';
@@ -9,7 +9,7 @@ import { watch } from 'vue';
 
 const visible = defineModel<boolean>('visible');
 
-const authStore = useAuthStore();
+const { data: session } = useAuthStatus();
 const toast = useToast();
 
 const signInMutation = useMutation({
@@ -24,7 +24,7 @@ const signInMutation = useMutation({
 });
 
 watch(
-  () => authStore.isLoggedIn,
+  session,
   (isLoggedIn) => {
     if (!isLoggedIn) return;
 
@@ -48,7 +48,7 @@ watch(
   >
     <div class="flex flex-col gap-3">
       <Button
-        @click="signInMutation.mutate"
+        @click="signInMutation.mutate()"
         fluid
         icon="pi pi-google"
         label="Sign in with Google"

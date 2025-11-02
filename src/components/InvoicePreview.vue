@@ -6,9 +6,10 @@ import Column from "primevue/column";
 import { useMutation, useQueryClient } from "@tanstack/vue-query";
 import { formatNumberToCurrency } from "@/utils/formatNumber";
 import router from "@/config/router";
-import { useAuthStore } from "@/stores";
 import { supabase } from "@/config/supabase";
 import SignInDialog from "./SignInDialog.vue";
+import { ref } from "vue";
+import { useAuthStatus } from "@/composables/useAuthStatus";
 
 type Props = {
   showBackButton: boolean;
@@ -17,7 +18,8 @@ type Props = {
 defineProps<Props>();
 defineEmits(["backToForm"]);
 
-const authStore = useAuthStore();
+const { data: session } = useAuthStatus();
+const isSignInDialogVisible = ref(false);
 const invoiceStore = useInvoiceStore();
 const queryClient = useQueryClient();
 const pdfMutation = useMutation({ mutationFn: saveAsPdf });
@@ -68,7 +70,7 @@ async function saveAsPdf() {
     link.click();
     URL.revokeObjectURL(url);
 
-    authStore.isSignInDialogVisible = false;
+    isSignInDialogVisible.value = false;
 
   } catch (err) {
     console.error("Error saving PDF:", err);
@@ -77,8 +79,8 @@ async function saveAsPdf() {
 
 function handleDownloadInvoice() {
   if (!invoiceStore.activeInvoice) return;
-  if (!authStore.isLoggedIn) {
-    authStore.isSignInDialogVisible = true;
+  if (!session.value) {
+    isSignInDialogVisible.value = true;
     return;
   }
 
@@ -86,7 +88,7 @@ function handleDownloadInvoice() {
 }
 
 async function saveInvoiceToDatabase() {
-  if (!invoiceStore.activeInvoice || !authStore.isLoggedIn) return;
+  if (!invoiceStore.activeInvoice || !session.value) return;
 
   const { data: savedInvoice } = await supabase
     .from("invoices")
@@ -130,8 +132,8 @@ function formatDate(value?: string | Date | null): string {
       </div>
       <div class="flex gap-2">
         <Button
-          v-if="authStore.isLoggedIn"
-          @click="saveToDatabaseMutation.mutate"
+          v-if="session"
+          @click="saveToDatabaseMutation.mutate()"
           size="small"
           label="Save"
           icon="pi pi-save"
@@ -283,16 +285,7 @@ function formatDate(value?: string | Date | null): string {
       </div>
     </div>
 
-    <SignInDialog v-model:visible="authStore.isSignInDialogVisible">
-      <Button
-        @click="pdfMutation.mutate"
-        fluid
-        icon="pi pi-download"
-        label="Download without sign in"
-        text
-        :loading="pdfMutation.isPending.value"
-      />
-    </SignInDialog>
+    <SignInDialog v-model:visible="isSignInDialogVisible"></SignInDialog>
   </div>
 </template>
 
