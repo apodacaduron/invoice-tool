@@ -79,6 +79,26 @@ async function signOut() {
                       <span class="font-medium">Saved invoices</span>
                     </router-link>
                   </li>
+                  <li>
+                    <router-link
+                      to="/buyers"
+                      class="flex items-center cursor-pointer p-4 rounded text-surface-700 hover:bg-surface-100 dark:text-surface-0 dark:hover:bg-surface-800 duration-150 transition-colors p-ripple"
+                      @click="closeCallback"
+                    >
+                      <i class="pi pi-user mr-2"></i>
+                      <span class="font-medium">Buyers</span>
+                    </router-link>
+                  </li>
+                  <li>
+                    <router-link
+                      to="/sellers"
+                      class="flex items-center cursor-pointer p-4 rounded text-surface-700 hover:bg-surface-100 dark:text-surface-0 dark:hover:bg-surface-800 duration-150 transition-colors p-ripple"
+                      @click="closeCallback"
+                    >
+                      <i class="pi pi-briefcase mr-2"></i>
+                      <span class="font-medium">Sellers</span>
+                    </router-link>
+                  </li>
                 </ul>
               </li>
             </ul>
