@@ -1,5 +1,11 @@
 # 🧾 Invoice Tool
 
+<p align="center">
+  <a href="https://www.producthunt.com/products/invoice-tool?embed=true&utm_source=badge-featured&utm_medium=badge&utm_source=badge-invoice-tool" target="_blank">
+    <img src="https://api.producthunt.com/widgets/embed-image/v1/featured.svg?post_id=1033671&theme=light&t=1762177311757" alt="Invoice Tool - Free, simple, fast, and modern invoicing for freelancers | Product Hunt" width="250" height="54" />
+  </a>
+</p>
+
 A simple and free invoicing app for freelancers and contractors.  
 Create, save, and download professional invoices in seconds — no limits, no subscriptions.
 
