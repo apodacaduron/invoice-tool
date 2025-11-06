@@ -7,12 +7,22 @@ import ToastService from 'primevue/toastservice';
 import { createApp } from 'vue';
 
 import Theme from '@/config/theme';
-import { VueQueryPlugin } from '@tanstack/vue-query';
+import { VueQueryPlugin, VueQueryPluginOptions } from '@tanstack/vue-query';
 
 import App from './App.vue';
 import router from './config/router';
 
 const app = createApp(App);
+
+const vueQueryPluginOptions: VueQueryPluginOptions = {
+  queryClientConfig: {
+    defaultOptions: {
+      queries: {
+        refetchOnWindowFocus: false,
+      },
+    },
+  },
+}
 
 app.use(PrimeVue, {
   theme: {
@@ -23,7 +33,7 @@ app.use(PrimeVue, {
   },
 });
 app.use(router);
-app.use(VueQueryPlugin);
+app.use(VueQueryPlugin, vueQueryPluginOptions);
 app.use(ToastService);
 app.use(ConfirmationService);
 
