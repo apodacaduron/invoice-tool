@@ -1,22 +1,73 @@
-// Edge function: generate-invoice
+// Edge function: generate-invoice (refactored, DRY, same output)
+
 import { serve } from 'https://deno.land/std@0.168.0/http/server.ts';
 import { createClient } from 'https://esm.sh/@supabase/supabase-js@2';
 import { PDFDocument, rgb, StandardFonts } from 'npm:pdf-lib';
 
-const supabaseUrl = Deno.env.get("SUPABASE_URL")!;
-const supabaseKey = Deno.env.get("SUPABASE_SERVICE_ROLE_KEY")!;
-const supabase = createClient(supabaseUrl, supabaseKey);
+/* -------------------------------------------------------------------------- */
+/* Config                                                                      */
+/* -------------------------------------------------------------------------- */
+
+const supabase = createClient(
+  Deno.env.get("SUPABASE_URL")!,
+  Deno.env.get("SUPABASE_SERVICE_ROLE_KEY")!
+);
+
+const CORS_HEADERS = {
+  "Access-Control-Allow-Origin": "*",
+  "Access-Control-Allow-Headers": "authorization, x-client-info, apikey, content-type",
+  "Access-Control-Allow-Methods": "GET,POST,OPTIONS",
+  "Access-Control-Expose-Headers": "Content-Disposition",
+};
+
+const PAGE = { W: 768, H: 1103 };
+const MARGIN = { top: 72, bottom: 80 };
+const GAPS = { section: 40, row: 8, line: 18 };
+
+const COLORS = {
+  text: rgb(0.2, 0.2, 0.2),
+  muted: rgb(74 / 255, 84 / 255, 99 / 255),
+  tableHeader: rgb(109 / 255, 115 / 255, 128 / 255),
+  header: rgb(0.11, 0.11, 0.11),
+  lightRow: rgb(248 / 255, 251 / 255, 252 / 255),
+  lightBorder: rgb(231 / 255, 230 / 255, 235 / 255),
+  darkBorder: rgb(208 / 255, 212 / 255, 219 / 255),
+};
+
+/* -------------------------------------------------------------------------- */
+/* Helpers                                                                     */
+/* -------------------------------------------------------------------------- */
+
+const formatDate = (value?: string | Date) => {
+  if (!value) return "-";
+  const d = new Date(value);
+  return isNaN(d.getTime())
+    ? "-"
+    : d.toLocaleDateString("en-US", {
+        year: "numeric",
+        month: "short",
+        day: "2-digit",
+      });
+};
+
+function formatNumberToCurrency(
+  value: any,
+  locale: string = "en-US",
+  currency: string = "USD"
+): string {
+  // Convert the value to a number and default to 0 if it's invalid
+  const numericValue = isNaN(Number(value)) ? 0 : Number(value);
+
+  return new Intl.NumberFormat(locale, {
+    style: "currency",
+    currency: currency,
+  }).format(numericValue);
+}
+
 
 serve(async (req) => {
-  const corsHeaders = {
-    "Access-Control-Allow-Origin": "*",
-    "Access-Control-Allow-Headers": "authorization, x-client-info, apikey, content-type",
-    "Access-Control-Allow-Methods": "GET,POST,OPTIONS",
-    "Access-Control-Expose-Headers": "Content-Disposition",
-  };
-
   if (req.method === "OPTIONS") {
-    return new Response(null, { headers: corsHeaders });
+    return new Response(null, { headers: CORS_HEADERS });
   }
 
   try {
@@ -24,353 +75,299 @@ serve(async (req) => {
     if (!uuid) {
       return new Response(JSON.stringify({ error: "Missing invoice UUID" }), {
         status: 400,
-        headers: { ...corsHeaders, "Content-Type": "application/json" },
+        headers: { ...CORS_HEADERS, "Content-Type": "application/json" },
       });
     }
 
-    // fetch invoice from database
-    const { data: invoices, error } = await supabase
+    const { data: invoice, error } = await supabase
       .from("invoices")
       .select("*")
       .eq("id", uuid)
       .single();
 
-    if (error || !invoices) {
+    if (error || !invoice) {
       return new Response(JSON.stringify({ error: "Invoice not found" }), {
         status: 404,
-        headers: { ...corsHeaders, "Content-Type": "application/json" },
+        headers: { ...CORS_HEADERS, "Content-Type": "application/json" },
       });
     }
 
-    const invoice = invoices;
+    /* ---------------------------------------------------------------------- */
+    /* PDF Setup                                                               */
+    /* ---------------------------------------------------------------------- */
 
-    // Create PDF doc
-    const pdfDoc = await PDFDocument.create();
+    const pdf = await PDFDocument.create();
+    const font = await pdf.embedFont(StandardFonts.Helvetica);
+    const fontBold = await pdf.embedFont(StandardFonts.HelveticaBold);
 
-    // initial page size (letter-ish). You can change to [595, 842] for A4
-    const PAGE_W = 768;
-    const PAGE_H = 1103;
-
-    // Fonts
-    const font = await pdfDoc.embedFont(StandardFonts.Helvetica);
-    const fontBold = await pdfDoc.embedFont(StandardFonts.HelveticaBold);
-
-    // Layout constants (refined for premium feel)
-    const margin = 72; // increased from 60
-    const marginBottom = 80;
-    const topGap = 120;
-    const sectionGap = 40; // increased breathing room
-    const rowGap = 8; // tighter rows
-    const lineGap = 4;
-    const normalLineHeight = 18;
-
-    const usableWidth = PAGE_W - margin * 2;
-    const colWidths = [usableWidth * 0.56, usableWidth * 0.12, usableWidth * 0.16, usableWidth * 0.16];
-    const colX = [
-      margin,
-      margin + colWidths[0],
-      margin + colWidths[0] + colWidths[1],
-      margin + colWidths[0] + colWidths[1] + colWidths[2],
+    const usableWidth = PAGE.W - MARGIN.top * 2;
+    const colW = [
+      usableWidth * 0.56,
+      usableWidth * 0.12,
+      usableWidth * 0.16,
+      usableWidth * 0.16,
     ];
+    const colX = colW.reduce<number[]>(
+      (acc, w, i) => [...acc, (acc[i - 1] ?? MARGIN.top) + (i ? colW[i - 1] : 0)],
+      []
+    );
 
-    // helpers
-    const drawText = (p, text, x, y, size = 12, opts: { bold?: boolean; color?: any; align?: "left" | "right" } = {}) => {
-      const { bold = false, color = rgb(0, 0, 0), align = "left" } = opts;
-      const usedFont = bold ? fontBold : font;
-      const textWidth = usedFont.widthOfTextAtSize(text, size);
-      const posX = align === "right" ? x - textWidth : x;
-      p.drawText(String(text), { x: posX, y, size, font: usedFont, color });
+    let pages: any[] = [];
+    let page: any;
+    let y = 0;
+
+    const newPage = () => {
+      page = pdf.addPage([PAGE.W, PAGE.H]);
+      pages.push(page);
+      y = PAGE.H - MARGIN.top;
     };
 
-    const measureText = (text: string, size = 12, useBold = false) => {
-      const usedFont = useBold ? fontBold : font;
-      return usedFont.widthOfTextAtSize(text, size);
+    newPage();
+
+    const drawText = (
+      text: string,
+      x: number,
+      y: number,
+      size = 12,
+      {
+        bold = false,
+        color = COLORS.text,
+        align = "left",
+      }: { bold?: boolean; color?: any; align?: "left" | "right" } = {}
+    ) => {
+      const f = bold ? fontBold : font;
+      const w = f.widthOfTextAtSize(text, size);
+      page.drawText(text, {
+        x: align === "right" ? x - w : x,
+        y,
+        size,
+        font: f,
+        color,
+      });
     };
 
-    // wrapText preserves manual newlines and hard-breaks words if needed
     const wrapText = (text: string, maxWidth: number, size = 12, bold = false) => {
       if (!text) return [""];
-      const paragraphs = String(text).split("\n");
-      const lines: string[] = [];
-      const usedFont = bold ? fontBold : font;
-
-      for (const para of paragraphs) {
-        // If paragraph is empty (double newline in source), add a spacer
-        if (para.trim() === "") {
-          lines.push("");
-          continue;
-        }
-
-        const words = para.split(" ").filter(Boolean);
+      const f = bold ? fontBold : font;
+      return text.split("\n").flatMap((p) => {
+        if (!p.trim()) return [""];
+        const words = p.split(" ");
         let line = "";
-        for (const word of words) {
-          const test = line ? `${line} ${word}` : word;
-          if (usedFont.widthOfTextAtSize(test, size) <= maxWidth) {
-            line = test;
-          } else {
-            if (line) lines.push(line);
-            line = word;
+        const lines: string[] = [];
+        for (const w of words) {
+          const test = line ? `${line} ${w}` : w;
+          if (f.widthOfTextAtSize(test, size) <= maxWidth) line = test;
+          else {
+            lines.push(line);
+            line = w;
           }
         }
         if (line) lines.push(line);
-      }
-      return lines.length ? lines : [""];
+        return lines;
+      });
     };
 
-    // page creation + cursor management
-    let pages: any[] = [];
-    let page = pdfDoc.addPage([PAGE_W, PAGE_H]);
-    pages.push(page);
-    let y = PAGE_H - margin - 20; // starting cursor
-
-    // draw header (invoice title + meta)
-    const drawHeader = () => {
-      // Larger, bolder INVOICE title
-      drawText(page, "INVOICE", margin, y, 42, { bold: true, color: rgb(0.11, 0.11, 0.11) });
-
-      // move the right-side meta block left for breathing room
-      const halfWidth = usableWidth / 2;
-      const metaXLabel = margin + halfWidth;
-      const metaXValue = PAGE_W - margin;
-
-      y += 18;
-
-      // ID - uppercase label style
-      drawText(page, "ID", metaXLabel, y - 2, 9, { bold: true, color: rgb(0.4, 0.4, 0.4) });
-      drawText(page, invoice.id || "-", metaXValue, y, 10, { align: "right", color: rgb(0.3, 0.3, 0.3) });
-
-      y -= 18;
-
-      // Date - uppercase label style
-      drawText(page, "DATE", metaXLabel, y - 2, 9, { bold: true, color: rgb(0.4, 0.4, 0.4) });
-      drawText(page, formatDate(invoice.date), metaXValue, y, 10, { align: "right", color: rgb(0.3, 0.3, 0.3) });
-
-      y -= 18;
-
-      // Due date - uppercase label style
-      drawText(page, "DUE", metaXLabel, y - 2, 9, { bold: true, color: rgb(0.4, 0.4, 0.4) });
-      drawText(page, formatDate(invoice.due_date), metaXValue, y, 10, { align: "right", color: rgb(0.3, 0.3, 0.3) });
-
-      y -= sectionGap;
+    const ensureSpace = (h: number, repeatHeader = false) => {
+      if (y - h < MARGIN.bottom) {
+        newPage();
+        if (repeatHeader) drawTableHeader();
+      }
     };
 
-    // helper to format date safely
-    function formatDate(value?: string | Date): string {
-      if (!value) return "-";
+    /* ---------------------------------------------------------------------- */
+    /* Header                                                                  */
+    /* ---------------------------------------------------------------------- */
 
-      const d = new Date(value);
-      if (isNaN(d.getTime())) return "-";
+    drawText("INVOICE", MARGIN.top, y, 42, { bold: true, color: COLORS.header });
+    y += 18;
 
-      // options: short month name, day with leading zero, full year
-      const options: Intl.DateTimeFormatOptions = { year: "numeric", month: "short", day: "2-digit" };
-      // e.g., "Oct 19, 2025"
-      return d.toLocaleDateString("en-US", options);
-    }
-
-
-    // draw From/BillTo
-    const drawFromBill = () => {
-      const halfWidth = usableWidth / 2;
-      // Uppercase labels for section headers
-      drawText(page, "FROM", margin, y, 9, { bold: true, color: rgb(0.4, 0.4, 0.4) });
-      drawText(page, "BILL TO", margin + halfWidth, y, 9, { bold: true, color: rgb(0.4, 0.4, 0.4) });
-      y -= 18;
-
-      const leftLines = wrapText(invoice.seller_info || "-", halfWidth - 8, 11);
-      const rightLines = wrapText(invoice.buyer_info || "-", halfWidth - 8, 11);
-      const maxLines = Math.max(leftLines.length, rightLines.length);
-
-      // page break check
-      const required = maxLines * normalLineHeight + 8;
-      if (y - required < marginBottom) {
-        page = pdfDoc.addPage([PAGE_W, PAGE_H]);
-        pages.push(page);
-        y = PAGE_H - margin;
+    const metaX = PAGE.W - MARGIN.top;
+    [["ID", invoice.id], ["DATE", formatDate(invoice.date)], ["DUE", formatDate(invoice.due_date)]].forEach(
+      ([label, value]) => {
+        drawText(label as string, PAGE.W / 2, y, 9, { bold: true, color: COLORS.muted });
+        drawText(String(value ?? "-"), metaX, y, 10, { align: "right", color: COLORS.text });
+        y -= 18;
       }
+    );
 
-      for (let i = 0; i < maxLines; i++) {
-        drawText(page, leftLines[i] || "", margin, y, 11, { color: rgb(0.2, 0.2, 0.2) });
-        drawText(page, rightLines[i] || "", margin + halfWidth, y, 11, { color: rgb(0.2, 0.2, 0.2) });
-        y -= normalLineHeight;
-      }
-      y -= sectionGap;
-    };
+    y -= GAPS.section;
+
+    /* ---------------------------------------------------------------------- */
+    /* From / Bill To                                                          */
+    /* ---------------------------------------------------------------------- */
+
+    const half = usableWidth / 2;
+    drawText("FROM", MARGIN.top, y, 9, { bold: true, color: COLORS.muted });
+    drawText("BILL TO", MARGIN.top + half, y, 9, { bold: true, color: COLORS.text });
+    y -= 18;
+
+    const left = wrapText(invoice.seller_info || "-", half - 8, 11);
+    const right = wrapText(invoice.buyer_info || "-", half - 8, 11);
+    ensureSpace(Math.max(left.length, right.length) * GAPS.line);
+
+    left.forEach((l, i) => {
+      drawText(l, MARGIN.top, y, 11);
+      drawText(right[i] || "", MARGIN.top + half, y, 11);
+      y -= GAPS.line;
+    });
+
+    y -= GAPS.section;
+
+    /* ---------------------------------------------------------------------- */
+    /* Table                                                                   */
+    /* ---------------------------------------------------------------------- */
 
     const drawTableHeader = () => {
-      // Uppercase table headers with refined color
-      drawText(page, "DESCRIPTION", colX[0], y, 9, { bold: true, color: rgb(0.35, 0.35, 0.35) });
-      drawText(page, "HOURS", colX[1] + colWidths[1] - 6, y, 9, { bold: true, color: rgb(0.35, 0.35, 0.35), align: "right" });
-      drawText(page, "RATE", colX[2] + colWidths[2] - 6, y, 9, { bold: true, color: rgb(0.35, 0.35, 0.35), align: "right" });
-      drawText(page, "AMOUNT", colX[3] + colWidths[3] - 6, y, 9, { bold: true, color: rgb(0.35, 0.35, 0.35), align: "right" });
-      y -= 10;
-      // Stronger header border
-      page.drawLine({ start: { x: margin, y }, end: { x: PAGE_W - margin, y }, thickness: 1.5, color: rgb(0.7, 0.7, 0.7) });
+      ["DESCRIPTION", "HOURS", "RATE", "AMOUNT"].forEach((t, i) =>
+        drawText(t, i ? colX[i] + colW[i] - 6 : colX[0], y, 9, {
+          bold: true,
+          align: i ? "right" : "left",
+          color: COLORS.tableHeader,
+        })
+      );
+      y -= 12;
+      page.drawLine({
+        start: { x: MARGIN.top, y },
+        end: { x: PAGE.W - MARGIN.top, y },
+        thickness: 1.5,
+        color: COLORS.darkBorder,
+      });
       y -= 12;
     };
 
-    // draw header and from/bill and table header
-    drawHeader();
-    drawFromBill();
     drawTableHeader();
 
-    // function to add new page and optionally repeat the table header
-    const addNewPageAndHeader = (repeatHeader = true) => {
-      page = pdfDoc.addPage([PAGE_W, PAGE_H]);
-      pages.push(page);
-      y = PAGE_H - margin;
-      if (repeatHeader) {
-        // small header at top of new page
-        drawText(page, "INVOICE", margin, y, 14, { bold: true });
-        y -= 18;
-        drawTableHeader();
-      }
-    };
-
-    // render items
     let total = 0;
-    const items = invoice.items ?? [];
-    for (let i = 0; i < items.length; i++) {
-      const it = items[i];
-      const qtyText = typeof it.quantity !== "undefined" && it.quantity !== null ? String(it.quantity) : "-";
-      const rateText = `$${(Number(it.rate) || 0).toFixed(2)}`;
-      const amount = (Number(it.quantity) || 0) * (Number(it.rate) || 0);
-      const amountText = `$${amount.toFixed(2)}`;
 
-      const descMaxWidth = colWidths[0] - 6;
-      const descLines = wrapText(it.description || "-", descMaxWidth, 12);
-      const rowHeight = Math.max(descLines.length * normalLineHeight, normalLineHeight) + rowGap;
+    invoice.items?.forEach((it: any, i: number) => {
+      const amount = (it.quantity || 0) * (it.rate || 0);
+      const desc = wrapText(it.description || "-", colW[0] - 6, 11);
+      const rowH = Math.max(desc.length * GAPS.line, GAPS.line) + GAPS.row;
 
-      // page break if needed
-      if (y - rowHeight < marginBottom + 80) {
-        addNewPageAndHeader(true);
-      }
+      ensureSpace(rowH + 80, true);
 
-      // vertical centering
-      const fontSize = 12;
-      const totalTextHeight = descLines.length * normalLineHeight;
-      const offsetY = (rowHeight - totalTextHeight) / 2 + fontSize / 2; // adjust for baseline
-
-      // alternate row background
-      if (i % 2 === 1) {
+      if (i % 2) {
         page.drawRectangle({
-          x: margin,
-          y: y - rowHeight,
+          x: MARGIN.top,
+          y: y - rowH,
           width: usableWidth,
-          height: rowHeight + rowGap,
-          color: rgb(0.97, 0.97, 0.97), // very light gray
+          height: rowH + GAPS.row,
+          color: COLORS.lightRow,
         });
       }
 
-      // draw description lines
-      for (let li = 0; li < descLines.length; li++) {
-        drawText(page, descLines[li], colX[0] + 6, y - offsetY - li * normalLineHeight, 11, { color: rgb(0.2, 0.2, 0.2) });
-      }
+      desc.forEach((d, j) =>
+        drawText(d, colX[0] + 6, y - j * GAPS.line - 12, 11)
+      );
 
-      // draw numeric columns, vertically centered too
-      const rowCenterY = y - rowHeight / 2;
-      drawText(page, qtyText, colX[1] + colWidths[1] - 6, rowCenterY, 11, { align: "right", color: rgb(0.2, 0.2, 0.2) });
-      drawText(page, rateText, colX[2] + colWidths[2] - 6, rowCenterY, 11, { align: "right", color: rgb(0.2, 0.2, 0.2) });
-      // Amount is bolder for emphasis
-      drawText(page, amountText, colX[3] + colWidths[3] - 6, rowCenterY, 11, { align: "right", bold: true, color: rgb(0.1, 0.1, 0.1) });
+      drawText(String(it.quantity ?? "0"), colX[1] + colW[1] - 6, y - rowH / 2, 11, { align: "right" });
+      drawText(`${formatNumberToCurrency(+it.rate || 0)}`, colX[2] + colW[2] - 6, y - rowH / 2, 11, { align: "right" });
+      drawText(`${formatNumberToCurrency(amount)}`, colX[3] + colW[3] - 6, y - rowH / 2, 11, {
+        align: "right",
+        bold: true,
+      });
 
-      // move cursor down for next row
-      y -= rowHeight;
+      y -= rowH;
 
-      // subtle separator
-      page.drawLine({ start: { x: margin, y }, end: { x: PAGE_W - margin, y }, thickness: 0.4, color: rgb(0.88, 0.88, 0.88) });
+      // subtle row separator
+      page.drawLine({
+        start: { x: MARGIN.top, y },
+        end: { x: PAGE.W - MARGIN.top, y },
+        thickness: 0.4,
+        color: rgb(0.88, 0.88, 0.88),
+      });
+
       y -= 8;
-
       total += amount;
-    }
-
-    // ensure space for total section
-    // --- TOTAL SECTION SETUP (border-top style instead of box) ---
-    const totalSectionH = 56;
-    const paddingAfterRow = 24; // increased space
-
-    // Check if total section fits on current page
-    if (y - totalSectionH - paddingAfterRow < marginBottom) {
-      addNewPageAndHeader(true);
-    }
-
-    // move cursor down to leave space after last row
-    y -= paddingAfterRow;
-
-    // Define where the total section begins (aligning it with the right side columns)
-    const totalStartX = PAGE_W - margin - 296;
-
-    // Draw top border for total section (full width)
-    page.drawLine({
-      start: { x: totalStartX, y },
-      end: { x: PAGE_W - margin, y },
-      thickness: 1.5,
-      color: rgb(0.7, 0.7, 0.7),
     });
 
-    y -= 32; // space below border
+    /* ---------------------------------------------------------------------- */
+    /* Total                                                                   */
+    /* ---------------------------------------------------------------------- */
 
-    // Position total on the right side
-    const totalLabelX = PAGE_W - margin - 280;
-    const totalValueX = PAGE_W - margin;
+    ensureSpace(80, true);
+    y -= 24;
 
-    // draw "Total" label (uppercase)
-    drawText(page, "TOTAL", totalLabelX, y, 10, { bold: true, color: rgb(0.4, 0.4, 0.4) });
+    page.drawLine({
+      start: { x: PAGE.W - MARGIN.top - 296, y },
+      end: { x: PAGE.W - MARGIN.top, y },
+      thickness: 1.5,
+      color: COLORS.darkBorder,
+    });
 
-    // draw amount (larger, bolder)
+    y -= 32;
+    drawText("TOTAL", PAGE.W - MARGIN.top - 280, y, 10, { bold: true, color: COLORS.muted });
     drawText(
-      page,
-      `$${total.toFixed(2)} ${invoice.currency || "USD"}`,
-      totalValueX,
+      `${formatNumberToCurrency(total)} ${invoice.currency || "USD"}`,
+      PAGE.W - MARGIN.top,
       y,
       20,
-      { bold: true, align: "right", color: rgb(0.05, 0.05, 0.05) }
+      { bold: true, align: "right" }
     );
 
-    // move cursor below total section for notes
-    y -= sectionGap;
+    /* ---------------------------------------------------------------------- */
+    /* Notes                                                                   */
+    /* ---------------------------------------------------------------------- */
 
-    // notes
     if (invoice.notes) {
+      y -= GAPS.section;
       const noteLines = wrapText(invoice.notes, usableWidth, 11);
-      // page break if notes don't fit
-      if (y - noteLines.length * normalLineHeight - 20 < marginBottom) {
-        addNewPageAndHeader(false);
-      }
-      drawText(page, "NOTES", margin, y, 9, { bold: true, color: rgb(0.4, 0.4, 0.4) });
+
+      // Ensure space for notes header + at least one line
+      ensureSpace(noteLines.length * GAPS.line + 40, false);
+
+      drawText("NOTES", MARGIN.top, y, 9, {
+        bold: true,
+        color: COLORS.muted,
+      });
+
       y -= 18;
-      for (const nl of noteLines) {
-        drawText(page, nl, margin, y, 11, { color: rgb(0.2, 0.2, 0.2) });
-        y -= normalLineHeight;
-        if (y < marginBottom) {
-          addNewPageAndHeader(false);
-          y = PAGE_H - margin - 40;
+
+      for (const line of noteLines) {
+        // Page break mid-notes if needed
+        if (y < MARGIN.bottom) {
+          newPage();
+          y -= 20;
         }
+
+        drawText(line, MARGIN.top, y, 11, {
+          color: COLORS.text,
+        });
+
+        y -= GAPS.line;
       }
+
+      y -= GAPS.section;
     }
 
-    // page numbers footer
-    pages.forEach((p, idx) => {
-      const pageNum = idx + 1;
-      const txt = `Page ${pageNum} of ${pages.length}`;
-      p.drawText(txt, { x: PAGE_W / 2 - 30, y: marginBottom - 28, size: 10, font: font, color: rgb(0.45, 0.47, 0.53) });
-    });
 
-    const filename = `invoice-${formatDate(invoice.date).replace(/, /g, "-").replace(/ /g, "-")}.pdf`;
+    /* ---------------------------------------------------------------------- */
+    /* Footer                                                                  */
+    /* ---------------------------------------------------------------------- */
 
-    const pdfBytes = await pdfDoc.save({ useObjectStreams: true });
+    pages.forEach((p, i) =>
+      p.drawText(`Page ${i + 1} of ${pages.length}`, {
+        x: PAGE.W / 2 - 30,
+        y: MARGIN.bottom - 28,
+        size: 10,
+        font,
+        color: COLORS.muted,
+      })
+    );
+
+    const pdfBytes = await pdf.save();
     return new Response(pdfBytes, {
       status: 200,
       headers: {
-        ...corsHeaders,
+        ...CORS_HEADERS,
         "Content-Type": "application/pdf",
-        "Content-Disposition": `attachment; filename="${filename}"`,
+        "Content-Disposition": `attachment; filename="invoice-${formatDate(invoice.date)}.pdf"`,
       },
     });
-  } catch (err) {
-    console.error("[generate-invoice error]", err);
-    return new Response(JSON.stringify({ error: String(err?.message ?? err) }), {
+  } catch (err: any) {
+    return new Response(JSON.stringify({ error: err?.message ?? String(err) }), {
       status: 500,
-      headers: { ...corsHeaders, "Content-Type": "application/json" },
+      headers: { ...CORS_HEADERS, "Content-Type": "application/json" },
     });
   }
 });
