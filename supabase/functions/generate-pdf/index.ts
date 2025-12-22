@@ -55,13 +55,14 @@ serve(async (req) => {
     const font = await pdfDoc.embedFont(StandardFonts.Helvetica);
     const fontBold = await pdfDoc.embedFont(StandardFonts.HelveticaBold);
 
-    // Layout constants (tweak these to taste)
-    const margin = 60;
+    // Layout constants (refined for premium feel)
+    const margin = 72; // increased from 60
     const marginBottom = 80;
-    const topGap = 120; // initial title space
-    const sectionGap = 32;
-    const rowGap = 10;
+    const topGap = 120;
+    const sectionGap = 40; // increased breathing room
+    const rowGap = 8; // tighter rows
     const lineGap = 4;
+    const xxxsLineHeight = 8;
     const xxsLineHeight = 10;
     const xsLineHeight = 12;
     const smallLineHeight = 14;
@@ -140,40 +141,31 @@ serve(async (req) => {
 
     // draw header (invoice title + meta)
     const drawHeader = () => {
-      drawText(page, "INVOICE", margin, y, 36, { bold: true });
+      // Larger, bolder INVOICE title
+      drawText(page, "INVOICE", margin, y, 42, { bold: true, color: rgb(0.11, 0.11, 0.11) });
 
       // move the right-side meta block left for breathing room
       const halfWidth = usableWidth / 2;
       const metaXLabel = margin + halfWidth;
       const metaXValue = PAGE_W - margin;
 
-      // ID
-      drawText(page, "ID", metaXLabel, y, 12, { bold: true, color: rgb(0.45, 0.47, 0.53) });
-      drawText(page, invoice.id || "-", metaXValue, y, 10, { align: "right" });
-
-      y -= 22;
-
-      // Date
-      drawText(page, "Date", metaXLabel, y, 12, { bold: true, color: rgb(0.45, 0.47, 0.53) });
-      drawText(page, formatDate(invoice.date), metaXValue, y, 10, { align: "right" });
-
-      y -= 22;
-
-      // Due date
-      drawText(page, "Invoice due", metaXLabel, y, 12, { bold: true, color: rgb(0.45, 0.47, 0.53) });
-      drawText(page, formatDate(invoice.due_date), metaXValue, y, 10, { align: "right" });
-
-      y -= sectionGap;
-
-      // subtle divider
-      page.drawLine({
-        start: { x: margin, y },
-        end: { x: PAGE_W - margin, y },
-        thickness: 0.6,
-        color: rgb(0.93, 0.93, 0.95),
-      });
+      // ID - uppercase label style
+      drawText(page, "ID", metaXLabel, y - 2, 9, { bold: true, color: rgb(0.4, 0.4, 0.4) });
+      drawText(page, invoice.id || "-", metaXValue, y, 10, { align: "right", color: rgb(0.3, 0.3, 0.3) });
 
       y -= 18;
+
+      // Date - uppercase label style
+      drawText(page, "DATE", metaXLabel, y - 2, 9, { bold: true, color: rgb(0.4, 0.4, 0.4) });
+      drawText(page, formatDate(invoice.date), metaXValue, y, 10, { align: "right", color: rgb(0.3, 0.3, 0.3) });
+
+      y -= 18;
+
+      // Due date - uppercase label style
+      drawText(page, "DUE", metaXLabel, y - 2, 9, { bold: true, color: rgb(0.4, 0.4, 0.4) });
+      drawText(page, formatDate(invoice.due_date), metaXValue, y, 10, { align: "right", color: rgb(0.3, 0.3, 0.3) });
+
+      y -= sectionGap;
     };
 
     // helper to format date safely
@@ -193,12 +185,13 @@ serve(async (req) => {
     // draw From/BillTo
     const drawFromBill = () => {
       const halfWidth = usableWidth / 2;
-      drawText(page, "From", margin, y, 12, { bold: true, color: rgb(0.45, 0.47, 0.53) });
-      drawText(page, "Bill to", margin + halfWidth, y, 12, { bold: true, color: rgb(0.45, 0.47, 0.53) });
-      y -= 16;
+      // Uppercase labels for section headers
+      drawText(page, "FROM", margin, y, 9, { bold: true, color: rgb(0.4, 0.4, 0.4) });
+      drawText(page, "BILL TO", margin + halfWidth, y, 9, { bold: true, color: rgb(0.4, 0.4, 0.4) });
+      y -= 18;
 
-      const leftLines = wrapText(invoice.seller_info || "-", halfWidth - 8, 12);
-      const rightLines = wrapText(invoice.buyer_info || "-", halfWidth - 8, 12);
+      const leftLines = wrapText(invoice.seller_info || "-", halfWidth - 8, 11);
+      const rightLines = wrapText(invoice.buyer_info || "-", halfWidth - 8, 11);
       const maxLines = Math.max(leftLines.length, rightLines.length);
 
       // page break check
@@ -210,21 +203,23 @@ serve(async (req) => {
       }
 
       for (let i = 0; i < maxLines; i++) {
-        drawText(page, leftLines[i] || "", margin, y, 12);
-        drawText(page, rightLines[i] || "", margin + halfWidth, y, 12);
-        y -= xxsLineHeight;
+        drawText(page, leftLines[i] || "", margin, y, 11, { color: rgb(0.2, 0.2, 0.2) });
+        drawText(page, rightLines[i] || "", margin + halfWidth, y, 11, { color: rgb(0.2, 0.2, 0.2) });
+        y -= xxxsLineHeight;
       }
-      y -= sectionGap - 6;
+      y -= sectionGap;
     };
 
     const drawTableHeader = () => {
-      drawText(page, "Description", colX[0], y, 12, { bold: true, color: rgb(0.45, 0.47, 0.53) });
-      drawText(page, "Hours", colX[1] + colWidths[1] - 6, y, 12, { bold: true, color: rgb(0.45, 0.47, 0.53), align: "right" });
-      drawText(page, "Rate", colX[2] + colWidths[2] - 6, y, 12, { bold: true, color: rgb(0.45, 0.47, 0.53), align: "right" });
-      drawText(page, "Amount", colX[3] + colWidths[3] - 6, y, 12, { bold: true, color: rgb(0.45, 0.47, 0.53), align: "right" });
+      // Uppercase table headers with refined color
+      drawText(page, "DESCRIPTION", colX[0], y, 9, { bold: true, color: rgb(0.35, 0.35, 0.35) });
+      drawText(page, "HOURS", colX[1] + colWidths[1] - 6, y, 9, { bold: true, color: rgb(0.35, 0.35, 0.35), align: "right" });
+      drawText(page, "RATE", colX[2] + colWidths[2] - 6, y, 9, { bold: true, color: rgb(0.35, 0.35, 0.35), align: "right" });
+      drawText(page, "AMOUNT", colX[3] + colWidths[3] - 6, y, 9, { bold: true, color: rgb(0.35, 0.35, 0.35), align: "right" });
+      y -= 10;
+      // Stronger header border
+      page.drawLine({ start: { x: margin, y }, end: { x: PAGE_W - margin, y }, thickness: 1.5, color: rgb(0.7, 0.7, 0.7) });
       y -= 12;
-      page.drawLine({ start: { x: margin, y }, end: { x: PAGE_W - margin, y }, thickness: 0.5, color: rgb(0.90, 0.90, 0.93) });
-      y -= 14;
     };
 
     // draw header and from/bill and table header
@@ -250,14 +245,14 @@ serve(async (req) => {
     const items = invoice.items ?? [];
     for (let i = 0; i < items.length; i++) {
       const it = items[i];
-      const qtyText = typeof it.quantity !== "undefined" ? String(it.quantity) : "-";
+      const qtyText = typeof it.quantity !== "undefined" && it.quantity !== null ? String(it.quantity) : "-";
       const rateText = `$${(Number(it.rate) || 0).toFixed(2)}`;
       const amount = (Number(it.quantity) || 0) * (Number(it.rate) || 0);
       const amountText = `$${amount.toFixed(2)}`;
 
       const descMaxWidth = colWidths[0] - 6;
       const descLines = wrapText(it.description || "-", descMaxWidth, 12);
-      const rowHeight = Math.max(descLines.length * smallLineHeight, smallLineHeight) + rowGap;
+      const rowHeight = Math.max(descLines.length * xxxsLineHeight, xxxsLineHeight) + rowGap;
 
       // page break if needed
       if (y - rowHeight < marginBottom + 80) {
@@ -266,92 +261,100 @@ serve(async (req) => {
 
       // vertical centering
       const fontSize = 12;
-      const totalTextHeight = descLines.length * smallLineHeight;
+      const totalTextHeight = descLines.length * xxxsLineHeight;
       const offsetY = (rowHeight - totalTextHeight) / 2 + fontSize / 2; // adjust for baseline
+
+      // alternate row background
+      if (i % 2 === 1) {
+        page.drawRectangle({
+          x: margin,
+          y: y - rowHeight,
+          width: usableWidth,
+          height: rowHeight + rowGap,
+          color: rgb(0.97, 0.97, 0.97), // very light gray
+        });
+      }
 
       // draw description lines
       for (let li = 0; li < descLines.length; li++) {
-        drawText(page, descLines[li], colX[0], y - offsetY - li * smallLineHeight, 12);
+        drawText(page, descLines[li], colX[0], y - offsetY - li * xxxsLineHeight, 11, { color: rgb(0.2, 0.2, 0.2) });
       }
 
       // draw numeric columns, vertically centered too
-      const numericY = y - rowHeight / 2 + smallLineHeight / 2; // center first line
-      drawText(page, qtyText, colX[1] + colWidths[1] - 6, numericY, 12, { align: "right" });
-      drawText(page, rateText, colX[2] + colWidths[2] - 6, numericY, 12, { align: "right" });
-      drawText(page, amountText, colX[3] + colWidths[3] - 6, numericY, 12, { align: "right" });
+      const rowCenterY = y - rowHeight / 2;
+      drawText(page, qtyText, colX[1] + colWidths[1] - 6, rowCenterY, 11, { align: "right", color: rgb(0.2, 0.2, 0.2) });
+      drawText(page, rateText, colX[2] + colWidths[2] - 6, rowCenterY, 11, { align: "right", color: rgb(0.2, 0.2, 0.2) });
+      // Amount is bolder for emphasis
+      drawText(page, amountText, colX[3] + colWidths[3] - 6, rowCenterY, 11, { align: "right", bold: true, color: rgb(0.1, 0.1, 0.1) });
 
       // move cursor down for next row
       y -= rowHeight;
 
-      // separator
-      page.drawLine({ start: { x: margin, y }, end: { x: PAGE_W - margin, y }, thickness: 0.35, color: rgb(0.94, 0.94, 0.96) });
+      // subtle separator
+      page.drawLine({ start: { x: margin, y }, end: { x: PAGE_W - margin, y }, thickness: 0.4, color: rgb(0.88, 0.88, 0.88) });
       y -= 8;
 
       total += amount;
     }
 
-    // ensure space for total box
-    // --- TOTAL BOX SETUP ---
-    const totalBoxH = 68;
-    const paddingAfterRow = 12; // space between last row and total box
+    // ensure space for total section
+    // --- TOTAL SECTION SETUP (border-top style instead of box) ---
+    const totalSectionH = 56;
+    const paddingAfterRow = 24; // increased space
 
-    // Check if total box fits on current page
-    if (y - totalBoxH - paddingAfterRow < marginBottom) {
+    // Check if total section fits on current page
+    if (y - totalSectionH - paddingAfterRow < marginBottom) {
       addNewPageAndHeader(true);
     }
 
-    // move cursor down a bit to leave space after last row
+    // move cursor down to leave space after last row
     y -= paddingAfterRow;
 
-    // position of the box
-    const boxW = 320;
-    const boxX = PAGE_W - margin - boxW;
-    const boxY = y - totalBoxH;
-
-    // draw rectangle
-    page.drawRectangle({
-      x: boxX,
-      y: boxY,
-      width: boxW,
-      height: totalBoxH,
-      color: rgb(0.97, 0.98, 0.99),
-      borderColor: rgb(0.9, 0.9, 0.93),
-      borderWidth: 0.6,
+    // Draw top border for total section (full width)
+    page.drawLine({
+      start: { x: margin, y },
+      end: { x: PAGE_W - margin, y },
+      thickness: 1.5,
+      color: rgb(0.7, 0.7, 0.7),
     });
 
-    // draw "Total" label
-    drawText(page, "Total", boxX + 18, boxY + totalBoxH - 28, 14, { bold: true, color: rgb(0.45, 0.47, 0.53) });
+    y -= 32; // space below border
 
-    // draw amount
+    // Position total on the right side
+    const totalLabelX = PAGE_W - margin - 280;
+    const totalValueX = PAGE_W - margin;
+
+    // draw "Total" label (uppercase)
+    drawText(page, "TOTAL", totalLabelX, y, 10, { bold: true, color: rgb(0.4, 0.4, 0.4) });
+
+    // draw amount (larger, bolder)
     drawText(
       page,
       `$${total.toFixed(2)} ${invoice.currency || "USD"}`,
-      boxX + boxW - 18,
-      boxY + totalBoxH - 30,
-      18,
-      { bold: true, align: "right" }
+      totalValueX,
+      y,
+      20,
+      { bold: true, align: "right", color: rgb(0.05, 0.05, 0.05) }
     );
 
-    // move cursor below total box for any notes or footer
-    y = boxY - 16; // space after box
+    // move cursor below total section for notes
+    y -= 28;
 
     // notes
-    let notesY = boxY - 26;
     if (invoice.notes) {
-      const noteLines = wrapText(invoice.notes, usableWidth, 12);
+      const noteLines = wrapText(invoice.notes, usableWidth, 11);
       // page break if notes don't fit
-      if (notesY - noteLines.length * smallLineHeight < marginBottom) {
+      if (y - noteLines.length * smallLineHeight - 20 < marginBottom) {
         addNewPageAndHeader(false);
-        notesY = y;
       }
-      drawText(page, "Notes", margin, notesY, 12, { bold: true, color: rgb(0.45, 0.47, 0.53) });
-      notesY -= 18;
+      drawText(page, "NOTES", margin, y, 9, { bold: true, color: rgb(0.4, 0.4, 0.4) });
+      y -= 18;
       for (const nl of noteLines) {
-        drawText(page, nl, margin, notesY, 12);
-        notesY -= smallLineHeight;
-        if (notesY < marginBottom) {
+        drawText(page, nl, margin, y, 11, { color: rgb(0.2, 0.2, 0.2) });
+        y -= smallLineHeight;
+        if (y < marginBottom) {
           addNewPageAndHeader(false);
-          notesY = y;
+          y = PAGE_H - margin - 40;
         }
       }
     }

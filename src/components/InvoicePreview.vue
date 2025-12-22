@@ -183,57 +183,55 @@ async function saveInvoiceToDatabase() {
       </div>
     </div>
     <div class="page">
-      <div class="grid grid-cols-2 gap-4">
+      <div class="grid grid-cols-2 gap-6">
         <div
           :class="[
             'h-fit sm:col-span-1',
             { 'col-span-2': !pdfMutation.isPending.value },
           ]"
         >
-          <div class="text-4xl font-bold mb-3">INVOICE</div>
+          <div class="text-5xl font-bold mb-6 tracking-tight text-gray-900 dark:text-white">INVOICE</div>
         </div>
         <div
           :class="[
-            'h-fit sm:col-span-1',
+            'h-fit sm:col-span-1 space-y-2',
             { 'col-span-2': !pdfMutation.isPending.value },
           ]"
         >
-          <div class="flex justify-between items-center">
-            <div class="text-gray-500 dark:text-gray-200 font-bold text-sm">
+          <div class="flex justify-between items-center gap-4">
+            <div class="text-gray-500 dark:text-gray-400 font-medium text-xs uppercase tracking-wide">
               ID
             </div>
-            <div class="text-xs">
+            <div class="text-sm text-gray-700 dark:text-gray-300 font-mono">
               {{ activeInvoice?.id || "-" }}
             </div>
           </div>
-          <div class="flex justify-between items-center">
-            <div class="text-gray-500 dark:text-gray-200 font-bold text-sm">
+          <div class="flex justify-between items-center gap-4">
+            <div class="text-gray-500 dark:text-gray-400 font-medium text-xs uppercase tracking-wide">
               Date
             </div>
-            <div class="text-xs">
+            <div class="text-sm">
               <DatePicker
                 id="date"
                 type="date"
                 v-model="activeInvoice.date"
-                placeholder="Select invoice date"
+                placeholder="Click to set date"
                 size="small"
               />
-              <!-- {{ formatDate(activeInvoice?.date) }} -->
             </div>
           </div>
-          <div class="flex justify-between items-center">
-            <div class="text-gray-500 dark:text-gray-200 font-bold text-sm">
-              Invoice due
+          <div class="flex justify-between items-center gap-4">
+            <div class="text-gray-500 dark:text-gray-400 font-medium text-xs uppercase tracking-wide">
+              Due
             </div>
-            <div class="text-xs">
+            <div class="text-sm">
               <DatePicker
                 id="due_date"
                 type="date"
                 v-model="activeInvoice.due_date"
-                placeholder="Select due date"
+                placeholder="Click to set due date"
                 size="small"
               />
-              <!-- {{ formatDate(activeInvoice?.due_date) }} -->
             </div>
           </div>
         </div>
@@ -243,33 +241,29 @@ async function saveInvoiceToDatabase() {
             { 'col-span-2': !pdfMutation.isPending.value },
           ]"
         >
-          <div class="flex justify-between items-end mb-1">
+          <div class="flex justify-between items-end mb-2">
             <label
-              class="text-gray-500 dark:text-gray-200 font-bold text-sm"
+              class="text-gray-500 dark:text-gray-400 font-semibold text-xs uppercase tracking-wide"
               for="seller_info"
               >From</label
             >
             <Button
+              v-if="session"
               @click="isRecentSellersDialogOpen = true"
               small
               text
-              label="Recent values"
               icon="pi pi-history"
-              class="!py-0"
-              v-if="session"
+              class="!py-0 !text-xs !text-gray-500 hover:!text-gray-700 dark:hover:!text-gray-300"
             />
           </div>
           <Textarea
             id="seller_info"
             :autoResize="true"
             v-model="activeInvoice.seller_info"
-            class="border rounded p-2 w-full"
-            placeholder="Enter your company details (Name, Address, Contact)"
+            class="rounded p-3 w-full text-sm leading-relaxed"
+            placeholder="Click to add your details&#10;Company name&#10;Address&#10;Contact information"
             size="small"
           ></Textarea>
-          <!-- <div class="text-sm">
-            {{ activeInvoice?.seller_info || "-" }}
-          </div> -->
         </div>
         <div
           :class="[
@@ -277,48 +271,44 @@ async function saveInvoiceToDatabase() {
             { 'col-span-2': !pdfMutation.isPending.value },
           ]"
         >
-          <div class="flex justify-between items-end mb-1">
+          <div class="flex justify-between items-end mb-2">
             <label
-              class="text-gray-500 dark:text-gray-200 font-bold text-sm"
-              for="seller_info"
+              class="text-gray-500 dark:text-gray-400 font-semibold text-xs uppercase tracking-wide"
+              for="buyer_info"
               >Bill to</label
             >
             <Button
+              v-if="session"
               @click="isRecentBuyersDialogOpen = true"
               small
               text
-              label="Recent values"
               icon="pi pi-history"
-              class="!py-0"
-              v-if="session"
+              class="!py-0 !text-xs !text-gray-500 hover:!text-gray-700 dark:hover:!text-gray-300"
             />
           </div>
           <Textarea
             id="buyer_info"
             :autoResize="true"
             v-model="activeInvoice.buyer_info"
-            class="border rounded p-2 w-full"
-            placeholder="Enter client details (Name, Address, Contact)"
+            class="rounded p-3 w-full text-sm leading-relaxed"
+            placeholder="Click to add client details&#10;Client name&#10;Address&#10;Contact information"
             size="small"
           ></Textarea>
-          <!-- <div class="text-sm">
-            {{ activeInvoice?.buyer_info || "-" }}
-          </div> -->
         </div>
-        <div class="h-fit col-span-2 text-sm whitespace-pre-wrap">
-          <DataTable :value="activeInvoice?.items">
-            <Column field="description" header="Description" class="!w-full">
+        <div class="h-fit col-span-2 text-sm whitespace-pre-wrap mt-4">
+          <DataTable :value="activeInvoice?.items" stripedRows>
+            <Column field="description" header="DESCRIPTION" class="!w-full">
               <template #body="slotProps">
                 <Textarea
                   id="itemDescription"
                   v-model="activeInvoice.items[slotProps.index].description"
-                  placeholder="Item description"
+                  placeholder="Click to add item description"
                   size="small"
+                  class="!text-sm w-full"
                 />
-                <!-- {{ slotProps.data.description || "-" }} -->
               </template>
             </Column>
-            <Column field="quantity" header="Hours">
+            <Column field="quantity" header="HOURS">
               <template #body="slotProps">
                 <InputText
                   :modelValue="
@@ -330,14 +320,13 @@ async function saveInvoiceToDatabase() {
                   "
                   id="quantity"
                   type="number"
-                  placeholder="Hours"
+                  placeholder="0"
                   size="small"
-                  class="w-24"
+                  class="w-20 text-right"
                 />
-                <!-- {{ slotProps.data.quantity || "-" }} -->
               </template>
             </Column>
-            <Column field="rate" header="Rate">
+            <Column field="rate" header="RATE">
               <template #body="slotProps">
                 <InputText
                   id="rate"
@@ -348,29 +337,31 @@ async function saveInvoiceToDatabase() {
                   @update:modelValue="
                     activeInvoice.items[slotProps.index].rate = Number($event)
                   "
-                  placeholder="Price"
+                  placeholder="0.00"
                   size="small"
-                  class="w-24"
+                  class="w-24 text-right"
                 />
-                <!-- {{ formatNumberToCurrency(slotProps.data.rate) || "-" }} -->
               </template>
             </Column>
-            <Column key="amount" field="amount" header="Amount">
+            <Column key="amount" field="amount" header="AMOUNT" class="text-right">
               <template #body="slotProps">
-                {{
+                <span class="font-medium">{{
                   formatNumberToCurrency(
                     slotProps.data.quantity * slotProps.data.rate
                   ) || "-"
-                }}
+                }}</span>
               </template>
             </Column>
-            <Column v-if="activeInvoice && activeInvoice.items.length > 1" key="delete" field="delete" header="">
+            <Column v-if="activeInvoice && activeInvoice.items.length > 1" key="delete" field="delete" header="" class="!w-12">
               <template #body="slotProps">
-                <div
+                <Button
                   @click="activeInvoice.items.splice(slotProps.index, 1)"
-                >
-                  <Button size="small" icon="pi pi-trash" severity="danger" />
-                </div>
+                  size="small"
+                  icon="pi pi-trash"
+                  severity="danger"
+                  text
+                  class="!p-1"
+                />
               </template>
             </Column>
           </DataTable>
@@ -380,7 +371,8 @@ async function saveInvoiceToDatabase() {
             label="Add item"
             severity="secondary"
             icon="pi pi-plus"
-            class="mt-2 w-full"
+            text
+            class="mt-2 w-full !text-sm"
           />
         </div>
         <div
@@ -391,34 +383,41 @@ async function saveInvoiceToDatabase() {
         ></div>
         <div
           :class="[
-            'h-fit sm:col-span-1 text-xl font-semibold mt-4 p-2 bg-gray-100 dark:bg-neutral-900',
+            'h-fit sm:col-span-1 text-xl font-semibold mt-6 p-4 border-t-2 border-gray-300 dark:border-neutral-600',
             { 'col-span-2': !pdfMutation.isPending.value },
           ]"
         >
-          <div class="flex justify-between items-center text-right p-4">
-            <div class="text-gray-500 text-sm">Total</div>
+          <div class="flex justify-between items-center text-right">
+            <div class="text-gray-600 dark:text-gray-400 text-sm font-semibold uppercase tracking-wide">Total</div>
             <div class="flex gap-3 items-center">
-              {{ formatNumberToCurrency(total) || "-" }}
+              <span class="text-2xl font-bold text-gray-900 dark:text-white">{{ formatNumberToCurrency(total) || "-" }}</span>
               <Select
                 id="currency"
                 :options="currencies"
                 filter
                 v-model="activeInvoice.currency"
-                placeholder="Select a currency"
+                placeholder="Currency"
                 size="small"
+                class="w-24"
               />
-              <!-- {{ activeInvoice?.currency || "USD" }} -->
             </div>
           </div>
         </div>
-        <Textarea
-          id="notes"
-          :autoResize="true"
-          v-model="activeInvoice.notes"
-          class="border rounded p-2 col-span-2"
-          placeholder="Enter invoice notes"
-          size="small"
-        ></Textarea>
+        <div class="col-span-2 mt-4">
+          <label
+            class="text-gray-500 dark:text-gray-400 font-semibold text-xs uppercase tracking-wide block mb-2"
+            for="notes"
+            >Notes</label
+          >
+          <Textarea
+            id="notes"
+            :autoResize="true"
+            v-model="activeInvoice.notes"
+            class="rounded p-3 w-full text-sm leading-relaxed"
+            placeholder="Click to add payment terms, thank you message, or additional notes..."
+            size="small"
+          ></Textarea>
+        </div>
       </div>
     </div>
     <Dialog
@@ -501,8 +500,8 @@ async function saveInvoiceToDatabase() {
   }
 
   .page {
-    @apply shadow-lg border dark:border-neutral-700 w-full max-w-[8.5in] min-h-[11in] bg-white dark:bg-neutral-800;
-    @apply p-4 lg:p-10;
+    @apply shadow-xl border border-gray-200 dark:border-neutral-700 w-full max-w-[8.5in] min-h-[11in] bg-white dark:bg-neutral-800;
+    @apply p-8 lg:p-12;
   }
 }
 </style>
