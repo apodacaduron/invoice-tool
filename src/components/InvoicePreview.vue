@@ -343,7 +343,7 @@ async function saveInvoiceToDatabase() {
                 />
               </template>
             </Column>
-            <Column key="amount" field="amount" header="AMOUNT" class="text-right">
+            <Column key="amount" field="amount" header="AMOUNT">
               <template #body="slotProps">
                 <span class="font-medium">{{
                   formatNumberToCurrency(

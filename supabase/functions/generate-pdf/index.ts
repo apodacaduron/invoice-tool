@@ -62,10 +62,6 @@ serve(async (req) => {
     const sectionGap = 40; // increased breathing room
     const rowGap = 8; // tighter rows
     const lineGap = 4;
-    const xxxsLineHeight = 8;
-    const xxsLineHeight = 10;
-    const xsLineHeight = 12;
-    const smallLineHeight = 14;
     const normalLineHeight = 18;
 
     const usableWidth = PAGE_W - margin * 2;
@@ -99,6 +95,12 @@ serve(async (req) => {
       const usedFont = bold ? fontBold : font;
 
       for (const para of paragraphs) {
+        // If paragraph is empty (double newline in source), add a spacer
+        if (para.trim() === "") {
+          lines.push("");
+          continue;
+        }
+
         const words = para.split(" ").filter(Boolean);
         let line = "";
         for (const word of words) {
@@ -107,28 +109,10 @@ serve(async (req) => {
             line = test;
           } else {
             if (line) lines.push(line);
-            // hard-break if word itself is longer than maxWidth
-            if (usedFont.widthOfTextAtSize(word, size) > maxWidth) {
-              let chunk = "";
-              for (const ch of word) {
-                const t = chunk + ch;
-                if (usedFont.widthOfTextAtSize(t, size) <= maxWidth) {
-                  chunk = t;
-                } else {
-                  if (chunk) lines.push(chunk);
-                  chunk = ch;
-                }
-              }
-              if (chunk) line = chunk;
-              else line = "";
-            } else {
-              line = word;
-            }
+            line = word;
           }
         }
         if (line) lines.push(line);
-        // add blank line between paragraphs
-        if (para !== paragraphs[paragraphs.length - 1]) lines.push("");
       }
       return lines.length ? lines : [""];
     };
@@ -148,6 +132,8 @@ serve(async (req) => {
       const halfWidth = usableWidth / 2;
       const metaXLabel = margin + halfWidth;
       const metaXValue = PAGE_W - margin;
+
+      y += 18;
 
       // ID - uppercase label style
       drawText(page, "ID", metaXLabel, y - 2, 9, { bold: true, color: rgb(0.4, 0.4, 0.4) });
@@ -205,7 +191,7 @@ serve(async (req) => {
       for (let i = 0; i < maxLines; i++) {
         drawText(page, leftLines[i] || "", margin, y, 11, { color: rgb(0.2, 0.2, 0.2) });
         drawText(page, rightLines[i] || "", margin + halfWidth, y, 11, { color: rgb(0.2, 0.2, 0.2) });
-        y -= xxxsLineHeight;
+        y -= normalLineHeight;
       }
       y -= sectionGap;
     };
@@ -252,7 +238,7 @@ serve(async (req) => {
 
       const descMaxWidth = colWidths[0] - 6;
       const descLines = wrapText(it.description || "-", descMaxWidth, 12);
-      const rowHeight = Math.max(descLines.length * xxxsLineHeight, xxxsLineHeight) + rowGap;
+      const rowHeight = Math.max(descLines.length * normalLineHeight, normalLineHeight) + rowGap;
 
       // page break if needed
       if (y - rowHeight < marginBottom + 80) {
@@ -261,7 +247,7 @@ serve(async (req) => {
 
       // vertical centering
       const fontSize = 12;
-      const totalTextHeight = descLines.length * xxxsLineHeight;
+      const totalTextHeight = descLines.length * normalLineHeight;
       const offsetY = (rowHeight - totalTextHeight) / 2 + fontSize / 2; // adjust for baseline
 
       // alternate row background
@@ -277,7 +263,7 @@ serve(async (req) => {
 
       // draw description lines
       for (let li = 0; li < descLines.length; li++) {
-        drawText(page, descLines[li], colX[0], y - offsetY - li * xxxsLineHeight, 11, { color: rgb(0.2, 0.2, 0.2) });
+        drawText(page, descLines[li], colX[0] + 6, y - offsetY - li * normalLineHeight, 11, { color: rgb(0.2, 0.2, 0.2) });
       }
 
       // draw numeric columns, vertically centered too
@@ -310,9 +296,12 @@ serve(async (req) => {
     // move cursor down to leave space after last row
     y -= paddingAfterRow;
 
+    // Define where the total section begins (aligning it with the right side columns)
+    const totalStartX = PAGE_W - margin - 296;
+
     // Draw top border for total section (full width)
     page.drawLine({
-      start: { x: margin, y },
+      start: { x: totalStartX, y },
       end: { x: PAGE_W - margin, y },
       thickness: 1.5,
       color: rgb(0.7, 0.7, 0.7),
@@ -338,20 +327,20 @@ serve(async (req) => {
     );
 
     // move cursor below total section for notes
-    y -= 28;
+    y -= sectionGap;
 
     // notes
     if (invoice.notes) {
       const noteLines = wrapText(invoice.notes, usableWidth, 11);
       // page break if notes don't fit
-      if (y - noteLines.length * smallLineHeight - 20 < marginBottom) {
+      if (y - noteLines.length * normalLineHeight - 20 < marginBottom) {
         addNewPageAndHeader(false);
       }
       drawText(page, "NOTES", margin, y, 9, { bold: true, color: rgb(0.4, 0.4, 0.4) });
       y -= 18;
       for (const nl of noteLines) {
         drawText(page, nl, margin, y, 11, { color: rgb(0.2, 0.2, 0.2) });
-        y -= smallLineHeight;
+        y -= normalLineHeight;
         if (y < marginBottom) {
           addNewPageAndHeader(false);
           y = PAGE_H - margin - 40;
@@ -368,7 +357,7 @@ serve(async (req) => {
 
     const filename = `invoice-${formatDate(invoice.date).replace(/, /g, "-").replace(/ /g, "-")}.pdf`;
 
-    const pdfBytes = await pdfDoc.save();
+    const pdfBytes = await pdfDoc.save({ useObjectStreams: true });
     return new Response(pdfBytes, {
       status: 200,
       headers: {
