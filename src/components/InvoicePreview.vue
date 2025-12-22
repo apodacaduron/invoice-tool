@@ -2,27 +2,75 @@
 import Button from "primevue/button";
 import DataTable from "primevue/datatable";
 import Column from "primevue/column";
-import { useMutation, useQueryClient } from "@tanstack/vue-query";
+import { useMutation, useQuery, useQueryClient } from "@tanstack/vue-query";
 import { formatNumberToCurrency } from "@/utils/formatNumber";
 import router from "@/config/router";
 import { supabase } from "@/config/supabase";
 import { useAuthStatus } from "@/composables/useAuthStatus";
-import { useActiveInvoice } from "@/composables/useActiveInvoice";
+import { Invoice, useActiveInvoice } from "@/composables/useActiveInvoice";
+import {
+  DatePicker,
+  Dialog,
+  InputText,
+  ProgressSpinner,
+  Select,
+  Textarea,
+} from "primevue";
+import { currencies } from "@/utils/currencies";
+import { ref, toRef } from "vue";
 
-type Props = {
-  showBackButton: boolean;
-};
-
-defineProps<Props>();
-defineEmits(["backToForm"]);
+const isRecentSellersDialogOpen = ref(false);
+const isRecentBuyersDialogOpen = ref(false);
 
 const { data: session } = useAuthStatus();
-const { activeInvoice, setInvoice, toDB, fromDB, total } = useActiveInvoice();
+const { activeInvoice, addItem, setInvoice, toDB, fromDB, total } =
+  useActiveInvoice();
 const queryClient = useQueryClient();
 const pdfMutation = useMutation({ mutationFn: saveAsPdf });
 const saveToDatabaseMutation = useMutation({
   mutationFn: saveInvoiceToDatabase,
 });
+
+const recentSellersQuery = useQuery({
+  queryKey: ["recent-sellers"],
+  queryFn: async () =>
+    await supabase
+      .from("sellers")
+      .select()
+      .order("created_at", { ascending: false })
+      .limit(10),
+  enabled: toRef(
+    () => isRecentSellersDialogOpen.value && Boolean(session.value)
+  ),
+});
+const recentBuyersQuery = useQuery({
+  queryKey: ["recent-buyers"],
+  queryFn: async () =>
+    await supabase
+      .from("buyers")
+      .select()
+      .order("created_at", { ascending: false })
+      .limit(10),
+  enabled: toRef(
+    () => isRecentBuyersDialogOpen.value && Boolean(session.value)
+  ),
+});
+
+function selectRecentValue(
+  value: string | null,
+  field: keyof Pick<Invoice, "buyer_info" | "seller_info">
+) {
+  if (!activeInvoice) return;
+  if (value === null) return;
+
+  activeInvoice[field] = value;
+  closeRecentValuesDialog();
+}
+
+function closeRecentValuesDialog() {
+  isRecentBuyersDialogOpen.value = false;
+  isRecentSellersDialogOpen.value = false;
+}
 
 async function saveAsPdf() {
   try {
@@ -30,19 +78,25 @@ async function saveAsPdf() {
 
     if (!activeInvoice?.id) throw new Error("Invoice ID missing");
 
-    const { data: { session }, error: sessionError } = await supabase.auth.getSession();
+    const {
+      data: { session },
+      error: sessionError,
+    } = await supabase.auth.getSession();
     if (sessionError || !session) throw new Error("Usuario no autenticado");
     const token = session.access_token;
 
     // Call your Supabase Edge Function
-    const response = await fetch("https://msoloxkubjdinqyeutzb.supabase.co/functions/v1/generate-pdf", {
-      method: "POST",
-      headers: {
-        "Content-Type": "application/json",
-        "Authorization": `Bearer ${token}`,
-      },
-      body: JSON.stringify({ uuid: activeInvoice.id }),
-    });
+    const response = await fetch(
+      "https://msoloxkubjdinqyeutzb.supabase.co/functions/v1/generate-pdf",
+      {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+          Authorization: `Bearer ${token}`,
+        },
+        body: JSON.stringify({ uuid: activeInvoice.id }),
+      }
+    );
 
     if (!response.ok) {
       const errText = await response.text();
@@ -94,32 +148,12 @@ async function saveInvoiceToDatabase() {
     await router.push(`/invoice/${savedInvoice.id}`);
   }
 }
-
-// helper to format date safely
-function formatDate(value?: string | Date | null): string {
-  if (!value) return "-";
-
-  const d = new Date(value);
-  if (isNaN(d.getTime())) return "-";
-
-  // options: short month name, day with leading zero, full year
-  const options: Intl.DateTimeFormatOptions = { year: "numeric", month: "short", day: "2-digit" };
-  // e.g., "Oct 19, 2025"
-  return d.toLocaleDateString("en-US", options);
-}
 </script>
 
 <template>
   <div class="invoice">
     <div class="invoice__toolbar">
       <div class="flex items-center gap-2">
-        <Button
-          v-if="showBackButton"
-          size="small"
-          text
-          icon="pi pi-arrow-left"
-          @click="$emit('backToForm')"
-        />
         <h2 class="invoice__title">Preview</h2>
       </div>
       <div class="flex gap-2">
@@ -177,7 +211,14 @@ function formatDate(value?: string | Date | null): string {
               Date
             </div>
             <div class="text-xs">
-              {{ formatDate(activeInvoice?.date) }}
+              <DatePicker
+                id="date"
+                type="date"
+                v-model="activeInvoice.date"
+                placeholder="Select invoice date"
+                size="small"
+              />
+              <!-- {{ formatDate(activeInvoice?.date) }} -->
             </div>
           </div>
           <div class="flex justify-between items-center">
@@ -185,7 +226,14 @@ function formatDate(value?: string | Date | null): string {
               Invoice due
             </div>
             <div class="text-xs">
-              {{ formatDate(activeInvoice?.due_date) }}
+              <DatePicker
+                id="due_date"
+                type="date"
+                v-model="activeInvoice.due_date"
+                placeholder="Select due date"
+                size="small"
+              />
+              <!-- {{ formatDate(activeInvoice?.due_date) }} -->
             </div>
           </div>
         </div>
@@ -195,12 +243,33 @@ function formatDate(value?: string | Date | null): string {
             { 'col-span-2': !pdfMutation.isPending.value },
           ]"
         >
-          <div class="text-gray-500 dark:text-gray-200 font-bold text-sm">
-            From
+          <div class="flex justify-between items-end mb-1">
+            <label
+              class="text-gray-500 dark:text-gray-200 font-bold text-sm"
+              for="seller_info"
+              >From</label
+            >
+            <Button
+              @click="isRecentSellersDialogOpen = true"
+              small
+              text
+              label="Recent values"
+              icon="pi pi-history"
+              class="!py-0"
+              v-if="session"
+            />
           </div>
-          <div class="text-sm">
+          <Textarea
+            id="seller_info"
+            :autoResize="true"
+            v-model="activeInvoice.seller_info"
+            class="border rounded p-2 w-full"
+            placeholder="Enter your company details (Name, Address, Contact)"
+            size="small"
+          ></Textarea>
+          <!-- <div class="text-sm">
             {{ activeInvoice?.seller_info || "-" }}
-          </div>
+          </div> -->
         </div>
         <div
           :class="[
@@ -208,28 +277,82 @@ function formatDate(value?: string | Date | null): string {
             { 'col-span-2': !pdfMutation.isPending.value },
           ]"
         >
-          <div class="text-gray-500 dark:text-gray-200 font-bold text-sm">
-            Bill to
+          <div class="flex justify-between items-end mb-1">
+            <label
+              class="text-gray-500 dark:text-gray-200 font-bold text-sm"
+              for="seller_info"
+              >Bill to</label
+            >
+            <Button
+              @click="isRecentBuyersDialogOpen = true"
+              small
+              text
+              label="Recent values"
+              icon="pi pi-history"
+              class="!py-0"
+              v-if="session"
+            />
           </div>
-          <div class="text-sm">
+          <Textarea
+            id="buyer_info"
+            :autoResize="true"
+            v-model="activeInvoice.buyer_info"
+            class="border rounded p-2 w-full"
+            placeholder="Enter client details (Name, Address, Contact)"
+            size="small"
+          ></Textarea>
+          <!-- <div class="text-sm">
             {{ activeInvoice?.buyer_info || "-" }}
-          </div>
+          </div> -->
         </div>
         <div class="h-fit col-span-2 text-sm whitespace-pre-wrap">
           <DataTable :value="activeInvoice?.items">
             <Column field="description" header="Description" class="!w-full">
               <template #body="slotProps">
-                {{ slotProps.data.description || "-" }}
+                <Textarea
+                  id="itemDescription"
+                  v-model="activeInvoice.items[slotProps.index].description"
+                  placeholder="Item description"
+                  size="small"
+                />
+                <!-- {{ slotProps.data.description || "-" }} -->
               </template>
             </Column>
             <Column field="quantity" header="Hours">
               <template #body="slotProps">
-                {{ slotProps.data.quantity || "-" }}
+                <InputText
+                  :modelValue="
+                    String(activeInvoice.items[slotProps.index].quantity)
+                  "
+                  @update:modelValue="
+                    activeInvoice.items[slotProps.index].quantity =
+                      Number($event)
+                  "
+                  id="quantity"
+                  type="number"
+                  placeholder="Hours"
+                  size="small"
+                  class="w-24"
+                />
+                <!-- {{ slotProps.data.quantity || "-" }} -->
               </template>
             </Column>
             <Column field="rate" header="Rate">
               <template #body="slotProps">
-                {{ formatNumberToCurrency(slotProps.data.rate) || "-" }}
+                <InputText
+                  id="rate"
+                  type="number"
+                  :modelValue="
+                    String(activeInvoice.items[slotProps.index].rate)
+                  "
+                  @update:modelValue="
+                    activeInvoice.items[slotProps.index].rate = Number($event)
+                  "
+                  placeholder="Price"
+                  size="small"
+                  class="w-24"
+                />
+                <!-- {{ formatNumberToCurrency(slotProps.data.rate) || "-" }} -->
               </template>
             </Column>
             <Column key="amount" field="amount" header="Amount">
@@ -241,7 +364,24 @@ function formatDate(value?: string | Date | null): string {
                 }}
               </template>
             </Column>
+            <Column v-if="activeInvoice && activeInvoice.items.length > 1" key="delete" field="delete" header="">
+              <template #body="slotProps">
+                <div
+                  @click="activeInvoice.items.splice(slotProps.index, 1)"
+                >
+                  <Button size="small" icon="pi pi-trash" severity="danger" />
+                </div>
+              </template>
+            </Column>
           </DataTable>
+
+          <Button
+            @click="addItem()"
+            label="Add item"
+            severity="secondary"
+            icon="pi pi-plus"
+            class="mt-2 w-full"
+          />
         </div>
         <div
           :class="[
@@ -257,25 +397,93 @@ function formatDate(value?: string | Date | null): string {
         >
           <div class="flex justify-between items-center text-right p-4">
             <div class="text-gray-500 text-sm">Total</div>
-            <div>
-              {{
-                formatNumberToCurrency(total) || "-"
-              }}
-              {{ activeInvoice?.currency || "USD" }}
+            <div class="flex gap-3 items-center">
+              {{ formatNumberToCurrency(total) || "-" }}
+              <Select
+                id="currency"
+                :options="currencies"
+                filter
+                v-model="activeInvoice.currency"
+                placeholder="Select a currency"
+                size="small"
+              />
+              <!-- {{ activeInvoice?.currency || "USD" }} -->
             </div>
           </div>
         </div>
-        <div
-          v-if="activeInvoice?.notes"
-          class="h-fit col-span-2 text-sm whitespace-pre-wrap"
-        >
-          Notes:
-          <p>
-            {{ activeInvoice?.notes }}
-          </p>
-        </div>
+        <Textarea
+          id="notes"
+          :autoResize="true"
+          v-model="activeInvoice.notes"
+          class="border rounded p-2 col-span-2"
+          placeholder="Enter invoice notes"
+          size="small"
+        ></Textarea>
       </div>
     </div>
+    <Dialog
+      v-model:visible="isRecentSellersDialogOpen"
+      modal
+      header="Recent values"
+      :style="{ width: '25rem' }"
+    >
+      <div
+        v-if="recentSellersQuery.isLoading.value"
+        class="flex justify-center items-center"
+      >
+        <ProgressSpinner />
+      </div>
+      <div
+        v-else-if="!recentSellersQuery.data.value?.data?.length"
+        class="flex flex-col items-center text-center space-y-4"
+      >
+        <i class="pi pi-inbox" style="font-size: 2rem"></i>
+        <p class="text-gray-500">No recent values found</p>
+      </div>
+      <div v-else class="flex flex-col gap-2">
+        <Button
+          v-for="(recentValue, index) in recentSellersQuery.data.value.data"
+          :key="index"
+          text
+          class="w-full"
+          @click="selectRecentValue(recentValue.info, 'seller_info')"
+        >
+          {{ recentValue.info ?? "-" }}
+        </Button>
+      </div>
+    </Dialog>
+
+    <Dialog
+      v-model:visible="isRecentBuyersDialogOpen"
+      modal
+      header="Recent values"
+      :style="{ width: '25rem' }"
+    >
+      <div
+        v-if="recentBuyersQuery.isLoading.value"
+        class="flex justify-center items-center"
+      >
+        <ProgressSpinner />
+      </div>
+      <div
+        v-else-if="!recentBuyersQuery.data.value?.data?.length"
+        class="flex flex-col items-center text-center space-y-4"
+      >
+        <i class="pi pi-inbox" style="font-size: 2rem"></i>
+        <p class="text-gray-500">No recent values found</p>
+      </div>
+      <div v-else class="flex flex-col gap-2">
+        <Button
+          v-for="(recentValue, index) in recentBuyersQuery.data.value?.data"
+          :key="index"
+          text
+          class="w-full"
+          @click="selectRecentValue(recentValue.info, 'buyer_info')"
+        >
+          {{ recentValue.info ?? "-" }}
+        </Button>
+      </div>
+    </Dialog>
   </div>
 </template>
 

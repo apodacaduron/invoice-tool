@@ -1,25 +1,18 @@
 <script setup lang="ts">
-import InvoiceForm from "@/components/InvoiceForm.vue";
 import InvoicePreview from "@/components/InvoicePreview.vue";
 import { useActiveInvoice } from "@/composables/useActiveInvoice";
 import { useAuthStatus } from "@/composables/useAuthStatus";
-import { useResizeObserver } from "@/composables/useResizeObserver";
 import { supabase } from "@/config/supabase";
 import { useQuery } from "@tanstack/vue-query";
 import BlockUI from "primevue/blockui";
 import ProgressSpinner from "primevue/progressspinner";
-import { ref, toRef, watch } from "vue";
+import { toRef, watch } from "vue";
 import { useRoute, useRouter } from "vue-router";
-
-const invoiceContainerRef = ref<HTMLDivElement | null>(null);
-const isPreviewVisible = ref(false);
 
 const { data: session } = useAuthStatus();
 const route = useRoute()
 const router = useRouter()
 const { fromDB, setInvoice } = useActiveInvoice();
-const { elementSize: invoiceContainerDimensions } =
-  useResizeObserver(invoiceContainerRef);
 const invoiceQuery = useQuery({
   queryKey: ['invoice', route.params.invoiceId?.toString()],
   async queryFn() {
@@ -29,8 +22,6 @@ const invoiceQuery = useQuery({
   },
   enabled: toRef(() => Boolean(route.params.invoiceId?.toString() && session.value))
 })
-
-const isMobile = toRef(() => invoiceContainerDimensions.value.width < 1024)
 
 
 watch([invoiceQuery.isSuccess, () => invoiceQuery.data.value], ([isSuccess, invoiceData]) => {
@@ -51,17 +42,7 @@ watch([invoiceQuery.isSuccess, () => invoiceQuery.data.value], ([isSuccess, invo
   </BlockUI>
 
     <div v-if="!invoiceQuery.isLoading.value" class="flex">
-      <InvoiceForm
-        v-show="!isMobile || !isPreviewVisible"
-        :class="{ ['mx-auto']: isMobile }"
-        @preview="isPreviewVisible = true"
-        :showPreviewButton="isMobile"
-      />
-      <InvoicePreview
-        v-show="!isMobile || isPreviewVisible"
-        @backToForm="isPreviewVisible = false"
-        :showBackButton="isMobile"
-      />
+      <InvoicePreview />
     </div>
   </div>
 </template>
