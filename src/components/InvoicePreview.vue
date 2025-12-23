@@ -169,19 +169,17 @@ async function saveInvoiceToDatabase() {
           "
           :loading="saveToDatabaseMutation.isPending.value"
           severity="secondary"
-          v-tooltip.bottom="'Save invoice to your account'"
         />
         <Button
           @click="handleDownloadInvoice"
           size="small"
-          label="Download PDF"
+          label="Save & Download PDF"
           icon="pi pi-download"
           :disabled="
             pdfMutation.isPending.value ||
             saveToDatabaseMutation.isPending.value
           "
           :loading="pdfMutation.isPending.value"
-          v-tooltip.bottom="session ? 'Generate and download PDF' : 'Sign in required to download'"
         />
       </div>
     </div>
