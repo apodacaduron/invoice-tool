@@ -120,8 +120,21 @@ function confirmDelete(seller?: { id: number; info: string | null } | null) {
       <h2 class="text-2xl font-semibold">Sellers</h2>
     </div>
 
+    <!-- Initial loading state -->
+    <div v-if="sellersQuery.isLoading.value" class="grid gap-4 sm:grid-cols-1 md:grid-cols-2 lg:grid-cols-3">
+      <div
+        v-for="n in 6"
+        :key="n"
+        class="animate-pulse bg-white dark:bg-neutral-800 shadow-md p-4 rounded-lg border dark:border-neutral-700"
+      >
+        <div class="h-4 bg-gray-200 dark:bg-neutral-700 rounded w-3/4 mb-2"></div>
+        <div class="h-4 bg-gray-200 dark:bg-neutral-700 rounded w-1/2"></div>
+        <div class="h-3 bg-gray-200 dark:bg-neutral-700 rounded w-1/3 mt-4"></div>
+      </div>
+    </div>
+
     <!-- Sellers grid -->
-    <div class="grid gap-4 sm:grid-cols-1 md:grid-cols-2 lg:grid-cols-3">
+    <div v-else class="grid gap-4 sm:grid-cols-1 md:grid-cols-2 lg:grid-cols-3">
       <div
         v-for="seller in sellersQuery.data.value?.pages.flat()"
         :key="seller.id"
@@ -129,10 +142,7 @@ function confirmDelete(seller?: { id: number; info: string | null } | null) {
       >
         <div class="flex justify-between items-start">
           <div>
-            <h3 class="font-semibold text-lg">
-              Seller #{{ seller.id }}
-            </h3>
-            <p class="text-gray-600 dark:text-gray-400 text-sm whitespace-pre-line">
+            <p class="seller-info text-gray-600 dark:text-gray-400 text-sm whitespace-pre-line">
               {{ seller.info || "No info provided" }}
             </p>
           </div>
@@ -169,3 +179,10 @@ function confirmDelete(seller?: { id: number; info: string | null } | null) {
     </Popover>
   </div>
 </template>
+
+<style lang="css" scoped>
+  .seller-info::first-line {
+    font-weight: 600;
+    font-size: medium;
+  }
+</style>

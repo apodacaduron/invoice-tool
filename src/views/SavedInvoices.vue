@@ -176,6 +176,26 @@ async function saveAsPdf(uuid: string) {
       </router-link>
     </div>
 
+    <!-- Initial loading state -->
+    <div v-if="invoicesQuery.isLoading.value" class="grid gap-4 sm:grid-cols-1 md:grid-cols-2 lg:grid-cols-3">
+      <div
+        v-for="n in 6"
+        :key="n"
+        class="animate-pulse bg-white dark:bg-neutral-800 shadow-md p-4 rounded-lg border dark:border-neutral-700"
+      >
+        <div class="h-4 bg-gray-200 dark:bg-neutral-700 rounded w-3/4 mb-2"></div>
+        <div class="h-4 bg-gray-200 dark:bg-neutral-700 rounded w-3/4 mb-2"></div>
+        <div class="h-4 bg-gray-200 dark:bg-neutral-700 rounded w-3/4 mb-2"></div>
+        <div class="h-4 bg-gray-200 dark:bg-neutral-700 rounded w-3/4 mb-2"></div>
+        <div class="h-4 bg-gray-200 dark:bg-neutral-700 rounded w-3/4 mb-2"></div>
+        <div class="h-4 bg-gray-200 dark:bg-neutral-700 rounded w-3/4 mb-2"></div>
+        <div class="h-4 bg-gray-200 dark:bg-neutral-700 rounded w-3/4 mb-2"></div>
+        <div class="h-4 bg-gray-200 dark:bg-neutral-700 rounded w-3/4 mb-2"></div>
+        <div class="h-4 bg-gray-200 dark:bg-neutral-700 rounded w-1/2"></div>
+        <div class="h-3 bg-gray-200 dark:bg-neutral-700 rounded w-1/3 mt-4"></div>
+      </div>
+    </div>
+
     <!-- Cards Section -->
     <div class="grid gap-4 mt-6 sm:grid-cols-1 md:grid-cols-2 lg:grid-cols-3">
       <div
