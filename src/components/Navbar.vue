@@ -30,20 +30,19 @@ async function signOut() {
 </script>
 
 <template>
-  <nav class="flex justify-between items-center border-b dark:border-neutral-700 px-4 py-2 h-[60px]">
-    <Button @click="drawerVisible = true" icon="pi pi-bars" text />
+  <nav class="flex justify-between items-center border-b dark:border-neutral-700 px-6 py-3 h-[64px] bg-white dark:bg-neutral-900">
+    <Button @click="drawerVisible = true" icon="pi pi-bars" text aria-label="Open menu" />
     
-    <router-link class="font-semibold" to="/">🧾 Invoice Tool</router-link>
+    <router-link class="font-semibold text-lg tracking-tight text-gray-900 dark:text-white" to="/">Invoice Tool</router-link>
 
-    <div>
-      <Button
-        text
-        as="a"
-        href="https://ko-fi.com/apodacaduron"
-        target="_blank"
-        rel="noopener"
-      >❤️</Button>
-      <Button :icon="`pi ${isDarkMode ? 'pi-sun' : 'pi-moon'}`" @click="toggleDarkMode()" text />
+    <div class="flex items-center gap-1">
+      <Button 
+        :icon="`pi ${isDarkMode ? 'pi-sun' : 'pi-moon'}`" 
+        @click="toggleDarkMode()" 
+        text 
+        aria-label="Toggle theme"
+        class="text-gray-600 dark:text-gray-400"
+      />
     </div>
   </nav>
 
@@ -51,9 +50,9 @@ async function signOut() {
     <template #container="{ closeCallback }">
       <div class="flex flex-col justify-between h-full">
         <div class="flex flex-col">
-          <div class="flex items-center justify-between px-6 pt-4 shrink-0">
+          <div class="flex items-center justify-between px-6 pt-5 pb-4 shrink-0 border-b dark:border-neutral-700">
             <span class="inline-flex items-center gap-2">
-              <span class="font-semibold text-2xl">Menu</span>
+              <span class="font-semibold text-xl text-gray-900 dark:text-white">Navigation</span>
             </span>
             <span>
               <Button
@@ -61,7 +60,8 @@ async function signOut() {
                 @click="closeCallback"
                 icon="pi pi-times"
                 rounded
-                outlined
+                text
+                aria-label="Close menu"
               ></Button>
             </span>
           </div>
@@ -75,8 +75,8 @@ async function signOut() {
                       class="flex items-center cursor-pointer p-4 rounded text-surface-700 hover:bg-surface-100 dark:text-surface-0 dark:hover:bg-surface-800 duration-150 transition-colors p-ripple"
                       @click="closeCallback"
                     >
-                      <i class="pi pi-receipt mr-2"></i>
-                      <span class="font-medium">Saved invoices</span>
+                      <i class="pi pi-receipt mr-3 text-gray-600 dark:text-gray-400"></i>
+                      <span class="font-medium">Saved Invoices</span>
                     </router-link>
                   </li>
                   <li>
@@ -85,8 +85,8 @@ async function signOut() {
                       class="flex items-center cursor-pointer p-4 rounded text-surface-700 hover:bg-surface-100 dark:text-surface-0 dark:hover:bg-surface-800 duration-150 transition-colors p-ripple"
                       @click="closeCallback"
                     >
-                      <i class="pi pi-user mr-2"></i>
-                      <span class="font-medium">Buyers</span>
+                      <i class="pi pi-user mr-3 text-gray-600 dark:text-gray-400"></i>
+                      <span class="font-medium">Clients</span>
                     </router-link>
                   </li>
                   <li>
@@ -95,8 +95,8 @@ async function signOut() {
                       class="flex items-center cursor-pointer p-4 rounded text-surface-700 hover:bg-surface-100 dark:text-surface-0 dark:hover:bg-surface-800 duration-150 transition-colors p-ripple"
                       @click="closeCallback"
                     >
-                      <i class="pi pi-briefcase mr-2"></i>
-                      <span class="font-medium">Sellers</span>
+                      <i class="pi pi-briefcase mr-3 text-gray-600 dark:text-gray-400"></i>
+                      <span class="font-medium">Business Details</span>
                     </router-link>
                   </li>
                 </ul>
@@ -104,49 +104,59 @@ async function signOut() {
             </ul>
           </div>
         </div>
-        <div class="flex flex-col px-6 pb-6 gap-2">
-          <Button
-            text
-            as="a"
-            label="🐛 Something not working?"
-            href="https://forms.gle/Yd16fknTRPuSArRu9"
-            target="_blank"
-            rel="noopener"
-          />
-          <Button
-            text
-            as="a"
-            label="❤️ Support me"
-            href="https://ko-fi.com/apodacaduron"
-            target="_blank"
-            rel="noopener"
-          />
-          <Button
-            text
-            as="a"
-            icon="pi pi-github"
-            label="Github"
-            href="https://github.com/apodacaduron/invoice-tool"
-            target="_blank"
-            rel="noopener"
-          />
-
-          <div v-if="session">
+        <div class="flex flex-col px-6 pb-6 gap-3 border-t dark:border-neutral-700 pt-4">
+          <div v-if="session" class="mb-2">
+            <p class="text-xs text-gray-500 dark:text-gray-400 mb-3">Your data is saved and synced across devices.</p>
             <Button
               @click="signOut()"
               fluid
               icon="pi pi-sign-out"
-              label="Sign out"
+              label="Sign Out"
               outlined
+              severity="secondary"
             />
           </div>
-          <div v-else>
+          <div v-else class="mb-2">
+            <p class="text-xs text-gray-600 dark:text-gray-400 mb-3">Sign in to save invoices and access them from any device.</p>
             <Button
               @click="signInMutation.mutate()"
               fluid
               icon="pi pi-google"
-              label="Sign in with Google"
+              label="Sign In with Google"
               :loading="signInMutation.isPending.value"
+            />
+          </div>
+          
+          <div class="flex flex-col gap-2 pt-2 border-t dark:border-neutral-700">
+            <Button
+              text
+              as="a"
+              icon="pi pi-github"
+              label="View on GitHub"
+              href="https://github.com/apodacaduron/invoice-tool"
+              target="_blank"
+              rel="noopener"
+              class="!text-sm !justify-start"
+            />
+            <Button
+              text
+              as="a"
+              icon="pi pi-comment"
+              label="Report an Issue"
+              href="https://forms.gle/Yd16fknTRPuSArRu9"
+              target="_blank"
+              rel="noopener"
+              class="!text-sm !justify-start"
+            />
+            <Button
+              text
+              as="a"
+              icon="pi pi-heart"
+              label="Support This Project"
+              href="https://ko-fi.com/apodacaduron"
+              target="_blank"
+              rel="noopener"
+              class="!text-sm !justify-start"
             />
           </div>
         </div>

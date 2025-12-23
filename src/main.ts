@@ -1,6 +1,7 @@
 import './index.css';
 import 'primeicons/primeicons.css';
 
+import { Tooltip } from 'primevue';
 import PrimeVue from 'primevue/config';
 import ConfirmationService from 'primevue/confirmationservice';
 import ToastService from 'primevue/toastservice';
@@ -36,5 +37,6 @@ app.use(router);
 app.use(VueQueryPlugin, vueQueryPluginOptions);
 app.use(ToastService);
 app.use(ConfirmationService);
+app.directive('tooltip', Tooltip);
 
 app.mount("#app");

@@ -182,7 +182,7 @@ serve(async (req) => {
     y += 18;
 
     const metaX = PAGE.W - MARGIN.top;
-    [["ID", invoice.id], ["DATE", formatDate(invoice.date)], ["DUE", formatDate(invoice.due_date)]].forEach(
+    [["INVOICE ID", invoice.id], ["ISSUE DATE", formatDate(invoice.date)], ["DUE DATE", formatDate(invoice.due_date)]].forEach(
       ([label, value]) => {
         drawText(label as string, PAGE.W / 2, y, 9, { bold: true, color: COLORS.muted });
         drawText(String(value ?? "-"), metaX, y, 10, { align: "right", color: COLORS.text });
@@ -316,7 +316,7 @@ serve(async (req) => {
       // Ensure space for notes header + at least one line
       ensureSpace(noteLines.length * GAPS.line + 40, false);
 
-      drawText("NOTES", MARGIN.top, y, 9, {
+      drawText("ADDITIONAL NOTES", MARGIN.top, y, 9, {
         bold: true,
         color: COLORS.muted,
       });

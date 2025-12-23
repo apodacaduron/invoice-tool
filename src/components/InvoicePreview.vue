@@ -154,9 +154,9 @@ async function saveInvoiceToDatabase() {
   <div class="invoice">
     <div class="invoice__toolbar">
       <div class="flex items-center gap-2">
-        <h2 class="invoice__title">Preview</h2>
+        <h1 class="invoice__title">Invoice</h1>
       </div>
-      <div class="flex gap-2">
+      <div class="flex gap-3">
         <Button
           v-if="session"
           @click="saveToDatabaseMutation.mutate()"
@@ -168,17 +168,20 @@ async function saveInvoiceToDatabase() {
             pdfMutation.isPending.value
           "
           :loading="saveToDatabaseMutation.isPending.value"
+          severity="secondary"
+          v-tooltip.bottom="'Save invoice to your account'"
         />
         <Button
           @click="handleDownloadInvoice"
           size="small"
-          label="Download"
+          label="Download PDF"
           icon="pi pi-download"
           :disabled="
             pdfMutation.isPending.value ||
             saveToDatabaseMutation.isPending.value
           "
           :loading="pdfMutation.isPending.value"
+          v-tooltip.bottom="session ? 'Generate and download PDF' : 'Sign in required to download'"
         />
       </div>
     </div>
@@ -190,46 +193,46 @@ async function saveInvoiceToDatabase() {
             { 'col-span-2': !pdfMutation.isPending.value },
           ]"
         >
-          <div class="text-5xl font-bold mb-6 tracking-tight text-gray-900 dark:text-white">INVOICE</div>
+          <div class="text-5xl font-bold mb-8 tracking-tight text-gray-900 dark:text-white">INVOICE</div>
         </div>
         <div
           :class="[
-            'h-fit sm:col-span-1 space-y-2',
+            'h-fit sm:col-span-1 space-y-3',
             { 'col-span-2': !pdfMutation.isPending.value },
           ]"
         >
           <div class="flex justify-between items-center gap-4">
             <div class="text-gray-500 dark:text-gray-400 font-medium text-xs uppercase tracking-wide">
-              ID
+              Invoice ID
             </div>
-            <div class="text-sm text-gray-700 dark:text-gray-300 font-mono">
-              {{ activeInvoice?.id || "-" }}
+            <div class="text-xs text-gray-700 dark:text-gray-300">
+              {{ activeInvoice?.id || "Not yet saved" }}
             </div>
           </div>
           <div class="flex justify-between items-center gap-4">
             <div class="text-gray-500 dark:text-gray-400 font-medium text-xs uppercase tracking-wide">
-              Date
+              Issue Date
             </div>
-            <div class="text-sm">
+            <div class="text-xs">
               <DatePicker
                 id="date"
                 type="date"
                 v-model="activeInvoice.date"
-                placeholder="Click to set date"
+                placeholder="Select date"
                 size="small"
               />
             </div>
           </div>
           <div class="flex justify-between items-center gap-4">
             <div class="text-gray-500 dark:text-gray-400 font-medium text-xs uppercase tracking-wide">
-              Due
+              Due Date
             </div>
-            <div class="text-sm">
+            <div class="text-xs">
               <DatePicker
                 id="due_date"
                 type="date"
                 v-model="activeInvoice.due_date"
-                placeholder="Click to set due date"
+                placeholder="Select due date"
                 size="small"
               />
             </div>
@@ -254,6 +257,7 @@ async function saveInvoiceToDatabase() {
               text
               icon="pi pi-history"
               class="!py-0 !text-xs !text-gray-500 hover:!text-gray-700 dark:hover:!text-gray-300"
+              v-tooltip.bottom="'Use saved business details'"
             />
           </div>
           <Textarea
@@ -261,7 +265,7 @@ async function saveInvoiceToDatabase() {
             :autoResize="true"
             v-model="activeInvoice.seller_info"
             class="rounded p-3 w-full text-sm leading-relaxed"
-            placeholder="Click to add your details&#10;Company name&#10;Address&#10;Contact information"
+            placeholder="Your business information&#10;Company name&#10;Street address&#10;City, State ZIP&#10;Email or phone"
             size="small"
           ></Textarea>
         </div>
@@ -275,7 +279,7 @@ async function saveInvoiceToDatabase() {
             <label
               class="text-gray-500 dark:text-gray-400 font-semibold text-xs uppercase tracking-wide"
               for="buyer_info"
-              >Bill to</label
+              >Bill To</label
             >
             <Button
               v-if="session"
@@ -284,6 +288,7 @@ async function saveInvoiceToDatabase() {
               text
               icon="pi pi-history"
               class="!py-0 !text-xs !text-gray-500 hover:!text-gray-700 dark:hover:!text-gray-300"
+              v-tooltip.bottom="'Use saved client details'"
             />
           </div>
           <Textarea
@@ -291,18 +296,18 @@ async function saveInvoiceToDatabase() {
             :autoResize="true"
             v-model="activeInvoice.buyer_info"
             class="rounded p-3 w-full text-sm leading-relaxed"
-            placeholder="Click to add client details&#10;Client name&#10;Address&#10;Contact information"
+            placeholder="Client information&#10;Client or company name&#10;Street address&#10;City, State ZIP&#10;Email or phone"
             size="small"
           ></Textarea>
         </div>
-        <div class="h-fit col-span-2 text-sm whitespace-pre-wrap mt-4">
+        <div class="h-fit col-span-2 text-sm whitespace-pre-wrap">
           <DataTable :value="activeInvoice?.items" stripedRows>
             <Column field="description" header="DESCRIPTION" class="!w-full">
               <template #body="slotProps">
                 <Textarea
                   id="itemDescription"
                   v-model="activeInvoice.items[slotProps.index].description"
-                  placeholder="Click to add item description"
+                  placeholder="Service or product description"
                   size="small"
                   class="!text-sm w-full"
                 />
@@ -368,11 +373,11 @@ async function saveInvoiceToDatabase() {
 
           <Button
             @click="addItem()"
-            label="Add item"
+            label="Add Line Item"
             severity="secondary"
             icon="pi pi-plus"
             text
-            class="mt-2 w-full !text-sm"
+            class="mt-3 w-full !text-sm"
           />
         </div>
         <div
@@ -383,14 +388,14 @@ async function saveInvoiceToDatabase() {
         ></div>
         <div
           :class="[
-            'h-fit sm:col-span-1 text-xl font-semibold mt-6 p-4 border-t-2 border-gray-300 dark:border-neutral-600',
+            'h-fit sm:col-span-1 text-xl font-semibold mt-8 p-5 border-t-2 border-gray-300 dark:border-neutral-600',
             { 'col-span-2': !pdfMutation.isPending.value },
           ]"
         >
           <div class="flex justify-between items-center text-right">
             <div class="text-gray-600 dark:text-gray-400 text-sm font-semibold uppercase tracking-wide">Total</div>
             <div class="flex gap-3 items-center">
-              <span class="text-2xl font-bold text-gray-900 dark:text-white">{{ formatNumberToCurrency(total) || "-" }}</span>
+              <span class="text-2xl font-bold text-gray-900 dark:text-white">{{ formatNumberToCurrency(total) || "0.00" }}</span>
               <Select
                 id="currency"
                 :options="currencies"
@@ -403,18 +408,18 @@ async function saveInvoiceToDatabase() {
             </div>
           </div>
         </div>
-        <div class="col-span-2 mt-4">
+        <div class="col-span-2 mt-6">
           <label
-            class="text-gray-500 dark:text-gray-400 font-semibold text-xs uppercase tracking-wide block mb-2"
+            class="text-gray-500 dark:text-gray-400 font-semibold text-xs uppercase tracking-wide block mb-3"
             for="notes"
-            >Notes</label
+            >Additional Notes</label
           >
           <Textarea
             id="notes"
             :autoResize="true"
             v-model="activeInvoice.notes"
             class="rounded p-3 w-full text-sm leading-relaxed"
-            placeholder="Click to add payment terms, thank you message, or additional notes..."
+            placeholder="Payment terms, delivery instructions, or other relevant information"
             size="small"
           ></Textarea>
         </div>
@@ -423,8 +428,8 @@ async function saveInvoiceToDatabase() {
     <Dialog
       v-model:visible="isRecentSellersDialogOpen"
       modal
-      header="Recent values"
-      :style="{ width: '25rem' }"
+      header="Saved Business Details"
+      :style="{ width: '28rem' }"
     >
       <div
         v-if="recentSellersQuery.isLoading.value"
@@ -434,10 +439,10 @@ async function saveInvoiceToDatabase() {
       </div>
       <div
         v-else-if="!recentSellersQuery.data.value?.data?.length"
-        class="flex flex-col items-center text-center space-y-4"
+        class="flex flex-col items-center text-center space-y-4 py-6"
       >
-        <i class="pi pi-inbox" style="font-size: 2rem"></i>
-        <p class="text-gray-500">No recent values found</p>
+        <i class="pi pi-inbox text-gray-400 dark:text-gray-500" style="font-size: 2rem"></i>
+        <p class="text-gray-500 dark:text-gray-400">No saved business details yet</p>
       </div>
       <div v-else class="flex flex-col gap-2">
         <Button
@@ -455,8 +460,8 @@ async function saveInvoiceToDatabase() {
     <Dialog
       v-model:visible="isRecentBuyersDialogOpen"
       modal
-      header="Recent values"
-      :style="{ width: '25rem' }"
+      header="Saved Client Details"
+      :style="{ width: '28rem' }"
     >
       <div
         v-if="recentBuyersQuery.isLoading.value"
@@ -466,10 +471,10 @@ async function saveInvoiceToDatabase() {
       </div>
       <div
         v-else-if="!recentBuyersQuery.data.value?.data?.length"
-        class="flex flex-col items-center text-center space-y-4"
+        class="flex flex-col items-center text-center space-y-4 py-6"
       >
-        <i class="pi pi-inbox" style="font-size: 2rem"></i>
-        <p class="text-gray-500">No recent values found</p>
+        <i class="pi pi-inbox text-gray-400 dark:text-gray-500" style="font-size: 2rem"></i>
+        <p class="text-gray-500 dark:text-gray-400">No saved client details yet</p>
       </div>
       <div v-else class="flex flex-col gap-2">
         <Button
@@ -491,12 +496,12 @@ async function saveInvoiceToDatabase() {
   @apply w-full p-4 flex flex-col items-center;
 
   &__toolbar {
-    @apply flex justify-between items-center mb-4;
+    @apply flex justify-between items-center mb-6;
     @apply max-w-[8.5in] w-full;
   }
 
   &__title {
-    @apply text-2xl font-semibold;
+    @apply text-xl font-semibold text-gray-900 dark:text-white;
   }
 
   .page {
