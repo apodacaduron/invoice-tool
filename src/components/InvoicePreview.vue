@@ -23,7 +23,7 @@ const isRecentSellersDialogOpen = ref(false);
 const isRecentBuyersDialogOpen = ref(false);
 
 const { data: session } = useAuthStatus();
-const { activeInvoice, addItem, setInvoice, toDB, fromDB, total } =
+const { activeInvoice, addItem, setInvoice, toDB, fromDB, total, totalHours } =
   useActiveInvoice();
 const queryClient = useQueryClient();
 const pdfMutation = useMutation({ mutationFn: saveAsPdf });
@@ -390,6 +390,10 @@ async function saveInvoiceToDatabase() {
             { 'col-span-2': !pdfMutation.isPending.value },
           ]"
         >
+          <div class="flex justify-between items-center text-right mb-2">
+            <div class="text-gray-600 dark:text-gray-400 text-sm font-semibold uppercase tracking-wide">Total Hours</div>
+            <span class="text-sm font-semibold text-gray-700 dark:text-gray-300">{{ totalHours }}</span>
+          </div>
           <div class="flex justify-between items-center text-right">
             <div class="text-gray-600 dark:text-gray-400 text-sm font-semibold uppercase tracking-wide">Total</div>
             <div class="flex gap-3 items-center">

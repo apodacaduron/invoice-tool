@@ -36,6 +36,10 @@ function createActiveInvoice() {
     )
   );
 
+  const totalHours = computed(() =>
+    activeInvoice.items.reduce((sum, item) => sum + Number(item.quantity || 0), 0)
+  );
+
   function getDefaultInvoice(): ActiveInvoice {
     return {
       short_id: nanoid(),
@@ -93,6 +97,7 @@ function createActiveInvoice() {
   return {
     activeInvoice,
     total,
+    totalHours,
     resetInvoice,
     setInvoice,
     addItem,

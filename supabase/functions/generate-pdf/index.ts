@@ -238,6 +238,7 @@ serve(async (req) => {
     drawTableHeader();
 
     let total = 0;
+    let totalHours = 0;
 
     invoice.items?.forEach((it: any, i: number) => {
       const amount = (it.quantity || 0) * (it.rate || 0);
@@ -279,6 +280,7 @@ serve(async (req) => {
 
       y -= 8;
       total += amount;
+      totalHours += it.quantity || 0;
     });
 
     /* ---------------------------------------------------------------------- */
@@ -294,6 +296,10 @@ serve(async (req) => {
       thickness: 1.5,
       color: COLORS.darkBorder,
     });
+
+    y -= 24;
+    drawText("TOTAL HOURS", PAGE.W - MARGIN.top - 280, y, 9, { bold: true, color: COLORS.muted });
+    drawText(String(totalHours), PAGE.W - MARGIN.top, y, 11, { align: "right" });
 
     y -= 32;
     drawText("TOTAL", PAGE.W - MARGIN.top - 280, y, 10, { bold: true, color: COLORS.muted });
